@@ -514,11 +514,11 @@
                 <div class="about-title">插件发布地址</div>
                 <a
                   class="about-link"
-                  href="https://discord.com/channels/1134557553011998840/1472242483806077061"
+                  href="https://discord.com/channels/1560538321879564368/1561241358029824171"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  https://discord.com/channels/1134557553011998840/1472242483806077061
+                  https://discord.com/channels/1560538321879564368/1561241358029824171
                 </a>
               </div>
 
