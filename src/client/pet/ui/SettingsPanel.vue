@@ -673,6 +673,12 @@ const emit = defineEmits<{
   'model-change': [path: string];
 }>();
 
+// 模板里的 CLOSE、确定、点遮罩都直接调 close。少了这个函数，
+// 点击会抛 "close is not a function"，被 Vue 的 errorHandler 吞掉，表现就是「点了没反应」。
+function close(): void {
+  emit('close');
+}
+
 type SectionKey = 'model' | 'live2d' | 'comment' | 'expression' | 'tts' | 'about';
 
 const sectionTabs: ReadonlyArray<{
