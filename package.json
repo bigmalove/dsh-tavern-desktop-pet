@@ -1,0 +1,47 @@
+{
+  "name": "dsh-tavern-desktop-pet",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "DSH Tavern 桌宠插件：把 Live2D 桌宠（原 SillyTavern 扩展 tavern-desktop-pet）搬到 Tavern 里，跟着剧情吐槽、换表情、念台词。",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "dsh-tavern-plugin",
+        "@deepseek-ai/dsh-api-session-controller"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "klona": "2.0.6",
+    "pinia": "^3.0.3",
+    "vue": "^3.5.22",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.1",
+    "sass": "^1.105.2",
+    "vite": "^7.1.12"
+  }
+}

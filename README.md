@@ -1,0 +1,60 @@
+# dsh-tavern-desktop-pet
+
+把 [tavern-desktop-pet](https://github.com/bigmalove/tavern-desktop-pet)（原名「酒馆桌面宠物」，SillyTavern 的 Live2D 桌宠扩展）搬到 DSH Tavern 里的插件。
+
+桌宠是一层浮在页面右下角的 Live2D 模型：它跟着这一局的正文，按间隔吐槽、按情绪换表情、念台词（配音走 Tavern 已有的渠道），长按出功能菜单，双击立刻逗一次。
+
+## 状态
+
+| 能力 | 状态 |
+|---|---|
+| 浮层桌宠（Live2D，Cubism 2/4/5） | 已验证：模型从 CDN 加载并挂到 canvas，可拖动、可缩放、自动动作循环 |
+| 侧栏「桌宠」面板（打开设置 / 逗一下 / 状态） | 已验证 |
+| 输入框上方「逗一下」按钮 | 已验证 |
+| 上线/下线的清理（Vue 卸载、样式移除、全局垫片还原） | 已验证 |
+| 聊天监听（一轮开始 / 写完） | 已接 `tavernUi.watchTurnState`，逻辑走单测，端到端待一轮真实对话 |
+| 吐槽生成（宿主 `tavern.runTask` → 兜底直连模型） | 已实现；在本机隔离实例里因为「没有活跃前台 Agent」，走的是兜底直连，直连又被上游 SSE 判失败 |
+| 配音 | 走 Tavern 的 `speak`（浏览器朗读 / OpenAI 兼容 / GPT-SoVITS / MiniMax），未做端到端 |
+
+## 装进 Tavern
+
+```sh
+node build.mjs --deploy        # 构建并放到 <DSH_HOME>/profile-data/tavern/data/plugins/
+```
+
+刷新页面即可（宿主侧改动要重启 DSH）。开发期改 `src/client/**` 后重跑这条命令，浏览器侧几秒内自动换成新代码。
+
+## 目录
+
+```
+src/client/main.js          插件入口：装垫片、挂 Vue、注册面板与按钮
+src/client/bridge/shims.js  酒馆全局垫片（toastr / SillyTavern / getVariables / jQuery 壳）
+src/client/bridge/tavern.js 桌宠与 Tavern 之间唯一的桥（当前局、舞台、回合、宿主调用、朗读）
+src/client/bridge/actions.js React 侧操作 Vue 桌宠的函数指针
+src/client/pet/**           上游代码（live2d / audio / ui / chat / core / db / utils）
+src/host/index.mjs          宿主侧：tavern.handle 暴露的吐槽生成
+build.mjs                   vite + plugin-vue → classic CJS bundle，样式内联注入
+tests/packaging.test.mjs    产物形状 / 离线自足 / 元数据
+```
+
+## 和上游的差别
+
+- **入口**：上游靠酒馆的 `#extensionsMenu` 插菜单项；这里换成 Tavern 的 `registerPanel` + `registerComposerAction`。
+- **聊天监听**：上游挂 `MESSAGE_SENT` / `GENERATION_ENDED`，还要忽略自己 `generateRaw` 引起的回声；这里用 `watchTurnState` 的忙/闲跳变，不需要回声屏蔽。
+- **取消息**：`getChatMessages` → `tavernUi.getStage`（最近 5 轮的正文与台词）。
+- **调模型**：三个后端（酒馆主 API / 连接配置 / 自定义端点 + Key）合并成一次宿主调用：先 `tavern.runTask`（带卡、世界书、最近两轮，进这局请求记录），失败再直连这局的后台模型。
+- **配音**：上游自己带 Edge TTS / GPT-SoVITS / 小白盒；这里改用 Tavern 的配音渠道，删掉了重复的渠道管理。
+- **层级**：舞台 `10000 → 1200`、气泡 `10004 → 1300`、菜单 `10002 → 1400`、设置 `10001 → 1500`，压在 Tavern 的弹窗（2300）之下，不再盖住原生 UI。
+- **默认尺寸**：`PET_SCALE 0.3 → 0.55`（280×360 的基准画面太小吃不住高分屏）。
+- **删除**：`utils/style-teleport.ts`（同窗口下不需要跨文档搬样式）、jQueryUI 拖拽依赖（落到上游自带的 pointer 拖拽回退）。
+
+## 已知问题
+
+1. **同一局没有活跃前台 Agent 时，`tavern.runTask` 会报「前台会话不可用」**。这出现在「刚打开一局还没发言」的时候；兜底直连在部分通道上会被判 `SSE stream ended without [DONE]`。正常游玩（至少走完一轮）不受影响。
+2. **Live2D 引擎仍从 CDN 取**（pixi、pixi-live2d-display、Cubism Core，各带多级镜像）。断网时不显示模型，但界面不报错——如果需要完全离线，要把这三个文件放进 `assets/` 并改为本地加载。
+3. **上游仓库没有 LICENSE**。搬入代码前需要跟原作者确认授权；本包暂按 MIT 声明自己写的部分。
+4. **移动端未适配**：窄屏下仍会挂浮层，可能挡住输入框。
+
+## 许可
+
+本仓库新增代码 MIT。`src/client/pet/**` 来自上游仓库，版权归原作者。
