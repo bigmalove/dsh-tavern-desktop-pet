@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "DSH Tavern 桌宠插件：把 Live2D 桌宠（原 SillyTavern 扩展 tavern-desktop-pet）搬到 Tavern 里，跟着剧情吐槽、换表情、念台词。",
-  "license": "MIT",
+  "license": "CC-BY-NC-SA-4.0",
   "main": "lib/index.js",
   "exports": {
     ".": "./lib/index.js",
@@ -44,5 +44,13 @@
     "@vitejs/plugin-vue": "^6.0.1",
     "sass": "^1.105.2",
     "vite": "^7.1.12"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bigmalove/dsh-tavern-desktop-pet.git"
+  },
+  "homepage": "https://github.com/bigmalove/dsh-tavern-desktop-pet#readme",
+  "bugs": {
+    "url": "https://github.com/bigmalove/dsh-tavern-desktop-pet/issues"
   }
 }
