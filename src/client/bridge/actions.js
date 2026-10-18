@@ -10,6 +10,8 @@ export const petActions = {
   reloadModel: null,
   isReady: () => false,
   describe: () => '',
+  commentModel: () => null,
+  setCommentModel: null,
 }
 
 export function providePetActions(actions) {
@@ -23,6 +25,8 @@ export function clearPetActions() {
   petActions.reloadModel = null
   petActions.isReady = () => false
   petActions.describe = () => ''
+  petActions.commentModel = () => null
+  petActions.setCommentModel = null
 }
 
 export function openPetSettings() {

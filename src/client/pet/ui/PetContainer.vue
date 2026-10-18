@@ -49,6 +49,7 @@
 import { storeToRefs } from 'pinia';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { clearPetActions, providePetActions } from '../../bridge/actions';
+import { speak as speakViaTavern, standardEmotion, stopSpeaking as stopTavernSpeech } from '../../bridge/tavern';
 import { getTTSEnabled } from '../audio/tts-config';
 import { TTSManager } from '../audio/tts-manager';
 import { splitZhJaForDisplayAndTts } from '../chat/bilingual-text';
@@ -1320,47 +1321,20 @@ async function initPet() {
         Live2DManager.playRandomAnimation();
       }
 
-      const ttsEnabled = getTTSEnabled();
+      // 配音走 Tavern 自己的渠道（浏览器朗读 / OpenAI 兼容 / GPT-SoVITS / MiniMax），
+      // 上游那套 littlewhitebox / 自建 SoVITS 渠道不再需要，所以不再看它的 provider 开关。
       const autoPlay = !!settings.value.ttsAutoPlay;
       const tagLabel = parsed.normalizedTag || '(none)';
       log(
-        `生成完成，TTS检查: enabled=${ttsEnabled}, autoPlay=${autoPlay}, tag=${tagLabel}, textLen=${finalText.length}, ttsLen=${ttsText.length}, zhJa=${settings.value.ttsBilingualZhJaEnabled}, hasJa=${splitResult.hasJa}`,
+        `生成完成，自动朗读: autoPlay=${autoPlay}, tag=${tagLabel}, textLen=${finalText.length}, ttsLen=${ttsText.length}`,
       );
-      if (!ttsEnabled) return;
       if (!autoPlay) return;
 
-      const speaker = getCurrentCharacterId();
-      const voiceName = String(settings.value.ttsDefaultSpeaker || '').trim();
-
-      let context = String(parsed.context || '').trim();
-      if (!context && parsed.normalizedTag) {
-        const cfg = getEmotionConfigByTag(parsed.normalizedTag, settings.value.emotionConfigs);
-        context = String(cfg?.ttsContext || '').trim();
-      }
-
-      log(`自动朗读: speaker=${speaker}, voice=${voiceName || '默认'}, context=${context || '无'}`);
-
-      void (async () => {
-        try {
-          TTSManager.stop();
-
-          const ttsOverrides: { speaker?: string; context?: string } = {};
-          if (voiceName) ttsOverrides.speaker = voiceName;
-          if (context) ttsOverrides.context = context;
-
-          await TTSManager.speak(
-            {
-              type: 'dialogue',
-              speaker,
-              text: ttsText,
-              tts: Object.keys(ttsOverrides).length > 0 ? ttsOverrides : undefined,
-            },
-            `desktop_pet_comment_${Date.now()}`,
-          );
-        } catch (e) {
-          logError('自动朗读失败', e);
-        }
-      })();
+      void speakViaTavern({
+        text: ttsText,
+        emotion: standardEmotion(parsed.normalizedTag),
+        speaker: String(settings.value.ttsDefaultSpeaker || '').trim() || undefined,
+      });
     });
 
     const ready = await Live2DManager.init();
@@ -1558,7 +1532,16 @@ onMounted(() => {
       pieces.push(settings.value.modelPath ? `模型：${settings.value.modelPath}` : '尚未选择模型');
       pieces.push(`大小：${Math.round(normalizePetScale(settings.value.petScale) * 100)}%`);
       pieces.push(settings.value.autoTrigger ? `每 ${settings.value.triggerInterval} 轮吐槽一次` : '手动吐槽');
+      const chosen = settings.value.commentModel;
+      if (chosen?.provider && chosen?.model) pieces.push(`吐槽模型：${chosen.model}`);
       return pieces.join(' · ');
+    },
+    commentModel: () => ({ ...settings.value.commentModel }),
+    setCommentModel: (next: { provider: string; model: string }) => {
+      settings.value.commentModel = {
+        provider: String(next?.provider || ''),
+        model: String(next?.model || ''),
+      };
     },
   });
   initPet();

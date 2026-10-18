@@ -40,6 +40,10 @@ const PANEL_CSS = `
   border:1px solid var(--color-border-secondary,rgba(0,0,0,.18));background:var(--color-background-secondary,#f5f5f3);
   color:var(--color-text-primary,#1c1c1a)}
 .pet-panel button:hover{border-color:var(--color-border-primary,rgba(0,0,0,.4))}
+.pet-panel-field{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--color-text-secondary,#5f5e5a)}
+.pet-panel-field select{width:100%;padding:5px 8px;border-radius:8px;font-size:12px;
+  border:1px solid var(--color-border-secondary,rgba(0,0,0,.18));background:var(--color-background-primary,#fff);
+  color:var(--color-text-primary,#1c1c1a)}
 .pet-panel-hint{margin-top:4px;font-size:12px;color:var(--color-text-tertiary,#888)}
 `
 
@@ -52,15 +56,48 @@ function ensureRootStyle() {
   ;(document.head || document.documentElement).appendChild(style)
 }
 
-/** 侧栏「插件」组里的桌宠页：状态 + 打开设置 + 逗一下。 */
-function PetPanel(React) {
+/** 侧栏「插件」组里的桌宠页：状态 + 打开设置 + 逗一下 + 挑吐槽模型。 */
+function PetPanel(React, ctx) {
   return function PetPanelView() {
     const [status, setStatus] = React.useState(() => petActions.describe())
+    const [catalog, setCatalog] = React.useState(null)
+    const [choice, setChoice] = React.useState(() => petActions.commentModel() || { provider: '', model: '' })
 
     React.useEffect(() => {
       const timer = setInterval(() => setStatus(petActions.describe()), 1500)
       return () => clearInterval(timer)
     }, [])
+
+    React.useEffect(() => {
+      let alive = true
+      ctx.tavernUi
+        .callHost('dsh-tavern-desktop-pet/models', {})
+        .then((reply) => {
+          if (alive) setCatalog(reply?.providers || [])
+        })
+        .catch((error) => {
+          if (alive) setCatalog({ error: String(error?.message || error) })
+        })
+      return () => {
+        alive = false
+      }
+    }, [])
+
+    const pick = (event) => {
+      const [provider, model] = String(event.target.value || '').split('\n')
+      const next = { provider, model }
+      setChoice(next)
+      petActions.setCommentModel(next)
+    }
+
+    const options = [{ value: '\n', label: '跟随本局后台模型' }]
+    if (Array.isArray(catalog)) {
+      for (const entry of catalog) {
+        for (const model of entry.models) {
+          options.push({ value: `${entry.provider}\n${model}`, label: `${entry.label} · ${model}` })
+        }
+      }
+    }
 
     return React.createElement(
       'div',
@@ -72,6 +109,28 @@ function PetPanel(React) {
         React.createElement('button', { type: 'button', onClick: () => openPetSettings() }, '打开设置'),
         React.createElement('button', { type: 'button', onClick: () => teasePet() }, '逗一下'),
       ),
+      React.createElement(
+        'label',
+        { className: 'pet-panel-field' },
+        React.createElement('span', null, '吐槽用的模型'),
+        React.createElement(
+          'select',
+          {
+            value: `${choice.provider || ''}\n${choice.model || ''}`,
+            onChange: pick,
+            disabled: !Array.isArray(catalog),
+          },
+          options.map((option) =>
+            React.createElement('option', { key: option.value, value: option.value }, option.label),
+          ),
+        ),
+      ),
+      Array.isArray(catalog) && catalog.length === 0
+        ? React.createElement('div', { className: 'pet-panel-hint' }, '这台机器上还没配置模型通道。')
+        : null,
+      catalog && !Array.isArray(catalog)
+        ? React.createElement('div', { className: 'pet-panel-hint' }, `读取模型列表失败：${catalog.error || ''}`)
+        : null,
       React.createElement(
         'div',
         { className: 'pet-panel-hint' },
@@ -109,7 +168,7 @@ export function apply(ctx) {
         ctx.tavernUi.registerPanel({ id: 'pet', title: '桌宠', render: () => {
           const React = ctx.tavernUi.react
           if (!React) return null
-          const View = PetPanel(React)
+          const View = PetPanel(React, ctx)
           return React.createElement(View)
         } }),
       )

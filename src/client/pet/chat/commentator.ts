@@ -731,14 +731,17 @@ export const Commentator = {
   },
 
   /**
-   * 生成。宿主侧用这局的后台模型跑一次任务，请求会进这局的请求记录。
+   * 生成。宿主侧先试这局的后台任务（带卡与世界书），再退到直连模型。
    * 上游那三个后端（酒馆主 API / 连接配置 / 自定义端点）不再需要：
-   * 模型、Key、代理都由这局的 Tavern 设置决定。
+   * 模型、Key、代理都由这局的 Tavern 设置决定；玩家在桌宠设置里选的模型优先。
    */
   async _generateViaTavern(system: string, user: string): Promise<string> {
     const gameId = currentGameId();
     if (!gameId) throw new Error('还没有打开一局游戏');
-    const reply = await callHost('dsh-tavern-desktop-pet/comment', { gameId, system, user });
+    const store = useSettingsStore();
+    const chosen = store.settings.commentModel;
+    const selection = chosen?.provider && chosen?.model ? { provider: chosen.provider, model: chosen.model } : undefined;
+    const reply = await callHost('dsh-tavern-desktop-pet/comment', { gameId, system, user, selection });
     const text = String(reply?.text || '').trim();
     if (text) this._onComment?.(text, false);
     return text;

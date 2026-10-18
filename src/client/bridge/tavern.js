@@ -18,6 +18,7 @@ const state = {
   watchTurn: null,
   watchSettled: null,
   watchedGameId: '',
+  stageError: '',
 }
 
 const log = (...args) => console.log('[dsh-tavern-desktop-pet]', ...args)
@@ -114,7 +115,13 @@ export async function getStage(count = 5) {
     setStageSnapshot(stage)
     return state.stage
   } catch (error) {
-    warn('读取舞台数据失败', error)
+    // 写作/剧本这类没有卡的局，舞台接口一定拒绝；记一次就够了，别每轮刷屏。
+    if (state.stageError !== String(error?.message || error)) {
+      state.stageError = String(error?.message || error)
+      log('这一局没有舞台快照，改用按轮读正文：', state.stageError)
+    }
+    state.stage = null
+    state.stageAt = 0
     return null
   }
 }
@@ -122,20 +129,39 @@ export async function getStage(count = 5) {
 /**
  * 这一局的最近几轮，形状和上游 `_getChatContext` 期望的一致：
  * `[{ role, name, message }]`。玩家输入按 user，正文按 assistant。
+ *
+ * 有卡的局用舞台快照（带台词标注，还能给配音用）；没有卡的局（写作、剧本）
+ * 舞台接口会拒绝，退回宿主侧的按轮读取。
  */
 export async function getRecentMessages(limit = 20) {
   const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 20
+
   const stage = await getStage(Math.min(10, safeLimit))
-  if (!stage) return []
-  const cardName = String(stage.card?.name || '').trim() || '角色'
-  const turns = Array.isArray(stage.turns) ? stage.turns : []
-  const list = []
-  for (const turn of turns) {
-    const text = String(turn?.text || '').trim()
-    if (!text) continue
-    list.push({ role: 'assistant', name: cardName, message: text })
+  const stageTurns = Array.isArray(stage?.turns) ? stage.turns : []
+
+  if (stageTurns.length) {
+    const cardName = String(stage.card?.name || '').trim() || '角色'
+    return stageTurns
+      .map((turn) => String(turn?.text || '').trim())
+      .filter(Boolean)
+      .slice(-safeLimit)
+      .map((text) => ({ role: 'assistant', name: cardName, message: text }))
   }
-  return list.slice(-safeLimit)
+
+  const gameId = state.gameId
+  if (!gameId || !state.tavernUi) return []
+  try {
+    const reply = await callHost('dsh-tavern-desktop-pet/history', { gameId, limit: safeLimit })
+    const cardName = String(reply?.card || '').trim() || '角色'
+    return (reply?.turns || [])
+      .map((entry) => String(entry?.text || '').trim())
+      .filter(Boolean)
+      .slice(-safeLimit)
+      .map((text) => ({ role: 'assistant', name: cardName, message: text }))
+  } catch (error) {
+    warn('读取最近几轮失败', error)
+    return []
+  }
 }
 
 /** 只管「一轮开始 / 一轮写完」两件事；换局自动重订阅。 */
@@ -246,6 +272,25 @@ export async function speak({ text, speaker, emotion, narration }) {
     warn('朗读失败', error)
     return false
   }
+}
+
+/** 桌宠的中文情绪标签 → Tavern 用的 ST 28 情绪名。对不上的不传，由渠道自己判断。 */
+const EMOTION_TO_STANDARD = {
+  默认: 'neutral',
+  微笑: 'joy',
+  生气: 'anger',
+  难过: 'sadness',
+  惊讶: 'surprise',
+  嘲讽: 'smirk',
+  害羞: 'embarrassment',
+  思考: 'thinking',
+  大笑: 'amusement',
+  搞怪: 'playfulness',
+}
+
+export function standardEmotion(tag) {
+  const key = String(tag || '').trim()
+  return EMOTION_TO_STANDARD[key] || undefined
 }
 
 export function stopSpeaking() {
