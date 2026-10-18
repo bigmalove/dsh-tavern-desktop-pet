@@ -6,6 +6,12 @@
 
 这是一个独立仓库，不随 Tavern 分发，也不进 `dsh.profile.bundles`：装进 Tavern 的方式是把构建产物放进 Tavern 的用户插件目录（见下）。
 
+![桌宠在 Tavern 里吐槽](docs/screenshot-main.png)
+
+设置面板共六页（模型 / Live2D / 吐槽 / 表情 / 朗读 / 关于），点右下角桌宠长按、或侧栏「桌宠」页都能打开：
+
+![设置面板](docs/screenshot-settings.png)
+
 ## 状态
 
 | 能力 | 状态 |
@@ -41,7 +47,7 @@ src/client/main.js          插件入口：装垫片、挂 Vue、注册面板与
 src/client/bridge/shims.js  酒馆全局垫片（toastr / SillyTavern / getVariables / jQuery 壳）
 src/client/bridge/tavern.js 桌宠与 Tavern 之间唯一的桥（当前局、舞台、回合、宿主调用、朗读）
 src/client/bridge/actions.js React 侧操作 Vue 桌宠的函数指针
-src/client/pet/**           上游代码（live2d / audio / ui / chat / core / db / utils）
+src/client/pet/**           上游代码（live2d / ui / chat / core / db / utils）
 src/host/index.mjs          宿主侧：tavern.handle 暴露的吐槽生成
 build.mjs                   vite + plugin-vue → classic CJS bundle，样式内联注入
 tests/packaging.test.mjs    产物形状 / 离线自足 / 元数据
@@ -64,10 +70,12 @@ tests/packaging.test.mjs    产物形状 / 离线自足 / 元数据
 
 1. **同一局没有活跃前台 Agent 时，`tavern.runTask` 会报「前台会话不可用」**。这出现在「刚打开一局还没发言」的时候；这时自动落到直连模型。直连默认跟随本局后台模型，部分通道（如 `deepseek-flash`）直连会返回空——在侧栏「桌宠」页把「吐槽用的模型」换成能用的通道即可（实测 `reapi/claude-opus-5` 正常）。
 2. **Live2D 引擎仍从 CDN 取**（pixi、pixi-live2d-display、Cubism Core，各带多级镜像）。断网时不显示模型，但界面不报错——如果需要完全离线，要把这三个文件放进 `assets/` 并改为本地加载。
-3. **上游仓库没有 LICENSE**。搬入代码前需要跟原作者确认授权；本包暂按 MIT 声明自己写的部分。
+3. **许可**：整体按 CC BY-NC-SA 4.0 发布（与插件「关于」页一致），不得用于商业用途；插件里加载的 Live2D 模型与素材另有其权利人，需单独核验。
 4. **移动端未适配**：窄屏下仍会挂浮层，可能挡住输入框。
-6. **空局不会吐槽**：这一局还没有正文时，桌宠没有可读的上下文，会安静跳过（日志里是「没有可用的聊天记录」）。这是有意为之，不是卡住。
+5. **空局不会吐槽**：这一局还没有正文时，桌宠没有可读的上下文，会安静跳过（日志里是「没有可用的聊天记录」）。这是有意为之，不是卡住。
 
 ## 许可
 
-本仓库新增代码 MIT。`src/client/pet/**` 来自上游仓库，版权归原作者。
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans)，全文见 [LICENSE](LICENSE)。署名-非商业性使用-相同方式共享；插件加载的 Live2D 模型与素材版权归各自权利人，不在本许可范围内。
+
+上游出处：[bigmalove/tavern-desktop-pet](https://github.com/bigmalove/tavern-desktop-pet)（原名「酒馆桌面宠物」，SillyTavern 版）。
