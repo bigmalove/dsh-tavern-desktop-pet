@@ -24,6 +24,7 @@
       @toggle-motion-loop="toggleMotionLoop"
       @switch-model="openModelBrowser"
       @switch-persona="cyclePersona"
+      @open-settings="onMenuOpenSettings"
       @close-model="closePet"
     />
 
@@ -912,6 +913,12 @@ function openModelBrowser(): void {
   showModelBrowser.value = true;
 }
 
+/** 长按菜单里的「设置」：先收起菜单，再开设置面板（两层遮罩不能同时挂）。 */
+function onMenuOpenSettings(): void {
+  showMenu.value = false;
+  uiStore.openSettings();
+}
+
 function onModelBrowserLoad(url: string): void {
   settings.value.modelPath = url;
   showModelBrowser.value = false;
@@ -1086,7 +1093,7 @@ function syncStageAfterViewportResize(reason: string): void {
       stageEl.style.display = 'block';
       stageEl.style.visibility = 'visible';
       stageEl.style.opacity = '1';
-      stageEl.style.zIndex = '10000';
+      stageEl.style.zIndex = '1200';
     }
 
     const stage = Live2DStage.getStage();
@@ -1578,7 +1585,7 @@ onUnmounted(() => {
 @use './styles/theme-arknights.scss' as theme;
 
 .browser-overlay {
-  @include theme.overlay-backdrop(10003, 0.8);
+  @include theme.overlay-backdrop(1520, 0.8);
   padding: 12px;
   box-sizing: border-box;
   overflow: auto;

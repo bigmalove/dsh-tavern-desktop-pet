@@ -24,6 +24,10 @@ await rm(scratch, { recursive: true, force: true })
 await mkdir(scratch, { recursive: true })
 await mkdir(outDir, { recursive: true })
 
+// react 由 Tavern 的模块表提供（文档要求插件用 require('react') 取），所以不能内联：
+// 保留成 require("react")，让加载器 factory 的 require 去解析平台基座；Vue 等其余全部内联。
+const EXTERNALS = ['react', 'react-dom', 'react/jsx-runtime']
+
 await build({
   root,
   configFile: false,
@@ -41,7 +45,7 @@ await build({
       formats: ['cjs'],
       fileName: () => 'client.js',
     },
-    rollupOptions: { external: [] },
+    rollupOptions: { external: EXTERNALS },
   },
 })
 

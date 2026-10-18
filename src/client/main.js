@@ -13,6 +13,7 @@
 //   卸载   → 卸 Vue、断监听、删根节点与样式
 
 import { createPinia } from 'pinia'
+import React from 'react'
 import { createApp } from 'vue'
 import { installSillyTavernShims, uninstallSillyTavernShims } from './bridge/shims.js'
 import { attachTavern, detachTavern } from './bridge/tavern.js'
@@ -57,7 +58,7 @@ function ensureRootStyle() {
 }
 
 /** 侧栏「插件」组里的桌宠页：状态 + 打开设置 + 逗一下 + 挑吐槽模型。 */
-function PetPanel(React, ctx) {
+function PetPanel(ctx) {
   return function PetPanelView() {
     const [status, setStatus] = React.useState(() => petActions.describe())
     const [catalog, setCatalog] = React.useState(null)
@@ -164,13 +165,15 @@ export function apply(ctx) {
 
   if (ctx.tavernUi.apiVersion >= 2) {
     try {
+      // render 要返回 React 元素；React 由加载器提供（factory 的 require('react')），
+      // 不是 ctx.tavernUi 上的字段。
+      const View = PetPanel(ctx)
       disposers.push(
-        ctx.tavernUi.registerPanel({ id: 'pet', title: '桌宠', render: () => {
-          const React = ctx.tavernUi.react
-          if (!React) return null
-          const View = PetPanel(React, ctx)
-          return React.createElement(View)
-        } }),
+        ctx.tavernUi.registerPanel({
+          id: 'pet',
+          title: '桌宠',
+          render: () => React.createElement(View),
+        }),
       )
     } catch (error) {
       console.warn('[dsh-tavern-desktop-pet] 侧栏面板注册失败', error)

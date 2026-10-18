@@ -37,8 +37,14 @@
           <span class="command-sub">{{ commentStyle }}</span>
         </button>
 
-        <button class="command-btn danger" type="button" @click="$emit('close-model')">
+        <button class="command-btn" type="button" @click="$emit('open-settings')">
           <span class="command-index">05</span>
+          <span class="command-main">SETUP</span>
+          <span class="command-sub">全 部 设 置</span>
+        </button>
+
+        <button class="command-btn danger" type="button" @click="$emit('close-model')">
+          <span class="command-index">06</span>
           <span class="command-main">CLOSE</span>
           <span class="command-sub">MODEL OFF</span>
         </button>
@@ -91,6 +97,7 @@ const emit = defineEmits<{
   'toggle-motion-loop': [];
   'switch-model': [];
   'switch-persona': [];
+  'open-settings': [];
   'close-model': [];
 }>();
 

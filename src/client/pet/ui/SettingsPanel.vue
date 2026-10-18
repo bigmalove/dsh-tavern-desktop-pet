@@ -27,192 +27,34 @@
           </aside>
 
           <div class="panel-body">
-            <section class="setting-section" v-show="activeSection === 'api'">
+            <section class="setting-section" v-show="activeSection === 'model'">
               <h4>
                 <span class="section-index">01</span>
-                <span class="section-label">API 设置</span>
-                <span class="section-sub">API CONTROL</span>
+                <span class="section-label">模型</span>
+                <span class="section-sub">MODEL CONTROL</span>
               </h4>
 
-              <div class="form-group">
-                <label>API 模式</label>
-                <select v-model="settings.apiMode">
-                  <option value="tavern">酒馆主 API</option>
-                  <option value="preset">酒馆 API 连接配置</option>
-                  <option value="custom">自定义 API</option>
+              <div class="setting-group">
+                <label class="setting-label">吐槽用的模型</label>
+                <div class="setting-hint">
+                  空着就跟随这一局的后台模型。桌宠读到的正文（人物卡、世界书、最近两轮）由 Tavern 提供，
+                  模型和 Key 都在 Tavern 的设置里，这里不用再填一遍。
+                </div>
+                <select
+                  :value="settings.commentModelProvider + '|' + settings.commentModelModel"
+                  :disabled="modelCatalogState !== 'ready'"
+                  @change="onCommentModelChange"
+                >
+                  <option value="|">跟随本局后台模型</option>
+                  <option v-for="option in commentModelOptions" :key="option.value" :value="option.value">
+                    {{ option.label }}
+                  </option>
                 </select>
+                <div v-if="modelCatalogState === 'loading'" class="setting-hint">正在读取这台机器的模型通道…</div>
+                <div v-else-if="modelCatalogState === 'error'" class="setting-hint hint-error">{{ modelCatalogError }}</div>
+                <div v-else-if="commentModelOptions.length === 0" class="setting-hint hint-error">没有读到任何模型通道，请先在 Tavern 里配置模型。</div>
               </div>
-
-              <template v-if="settings.apiMode === 'custom'">
-                <div class="form-group">
-                  <label>API Source</label>
-                  <select v-model="settings.apiConfig.source">
-                    <option v-for="src in apiSources" :key="src.value" :value="src.value">
-                      {{ src.label }}
-                    </option>
-                  </select>
-                </div>
-              </template>
-
-              <template v-if="settings.apiMode === 'preset'">
-                <div class="form-group">
-                  <label>API 连接配置</label>
-                  <div class="input-with-btn">
-                    <select
-                      v-model="settings.apiConfig.proxyPreset"
-                      :disabled="proxyPresetLoading || proxyPresetOptions.length === 0"
-                    >
-                      <option value="" disabled>{{ proxyPresetPlaceholder }}</option>
-                      <option v-if="proxyPresetMissingMessage" :value="settings.apiConfig.proxyPreset">
-                        {{ settings.apiConfig.proxyPreset }}（已失效）
-                      </option>
-                      <option v-for="preset in proxyPresetOptions" :key="preset.name" :value="preset.name">
-                        {{ preset.name }}
-                      </option>
-                    </select>
-                    <button class="input-btn" type="button" @click="refreshProxyPresetOptions" :disabled="proxyPresetLoading">
-                      {{ proxyPresetLoading ? '刷新中...' : '刷新配置' }}
-                    </button>
-                  </div>
-                  <div v-if="proxyPresetLoadError" class="hint hint-error">{{ proxyPresetLoadError }}</div>
-                  <div v-else-if="proxyPresetMissingMessage" class="hint hint-error">{{ proxyPresetMissingMessage }}</div>
-                  <div v-else class="hint">
-                    将自动跟随该 API 连接配置里的来源、模型、代理与采样设置，无需额外填写。
-                  </div>
-                </div>
-              </template>
-
-              <template v-if="settings.apiMode === 'custom'">
-
-                <div class="form-group">
-                  <label>API URL</label>
-                  <input type="text" v-model="settings.apiConfig.url" placeholder="https://api.openai.com/v1" />
-                </div>
-
-                <div class="form-group">
-                  <label>API Key</label>
-                  <input type="password" v-model="settings.apiConfig.apiKey" placeholder="sk-..." />
-                </div>
-
-                <div class="form-group">
-                  <label>模型</label>
-                  <div class="input-with-btn">
-                    <input
-                      v-if="modelList.length === 0"
-                      type="text"
-                      v-model="settings.apiConfig.model"
-                      placeholder="gpt-4o-mini"
-                    />
-                    <select v-else v-model="settings.apiConfig.model">
-                      <option v-for="m in modelList" :key="m" :value="m">{{ m }}</option>
-                    </select>
-                    <button
-                      class="input-btn"
-                      type="button"
-                      @click="fetchModels"
-                      :disabled="!settings.apiConfig.url || fetchingModels"
-                    >
-                      {{ fetchingModels ? '获取中...' : '获取模型' }}
-                    </button>
-                  </div>
-                  <div v-if="modelFetchError" class="hint hint-error">{{ modelFetchError }}</div>
-                </div>
-
-                <div class="form-group">
-                  <button
-                    class="btn btn-test"
-                    type="button"
-                    :disabled="!settings.apiConfig.url || testingConnection"
-                    @click="testConnection"
-                  >
-                    {{ testingConnection ? '测试中...' : '测试连接' }}
-                  </button>
-                  <span v-if="connectionStatus === 'success'" class="status-badge status-success">连接成功</span>
-                  <span v-if="connectionStatus === 'fail'" class="status-badge status-fail">{{ connectionError }}</span>
-                </div>
-              </template>
-
-              <div class="form-group">
-                <label>
-                  <input
-                    type="checkbox"
-                    v-model="settings.apiConfig.usePresetSampling"
-                    :disabled="settings.apiMode === 'preset'"
-                  />
-                  跟随酒馆预设采样参数
-                </label>
-                <div class="hint">
-                  {{
-                    settings.apiMode === 'preset'
-                      ? '酒馆 API 连接配置模式会自动跟随所选连接配置里的采样参数。'
-                      : '启用后，采样参数将使用酒馆当前预设的值。'
-                  }}
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" v-model="settings.apiConfig.sendWorldInfo" />
-                  发送世界书（World Info）
-                </label>
-                <div class="hint">关闭后不注入世界书提示词，默认关闭。</div>
-              </div>
-
-              <template v-if="settings.apiMode !== 'preset' && !settings.apiConfig.usePresetSampling">
-                <div class="form-row">
-                  <div class="form-group half">
-                    <label>Max Tokens</label>
-                    <input type="number" v-model.number="settings.apiConfig.max_tokens" min="1" max="4096" />
-                  </div>
-                  <div class="form-group half">
-                    <label>Temperature ({{ temperatureLabel }})</label>
-                    <input type="range" v-model.number="settings.apiConfig.temperature" min="0" max="2" step="0.1" />
-                  </div>
-                </div>
-
-                <div class="advanced-toggle" @click="showAdvanced = !showAdvanced">
-                  <span class="toggle-icon">{{ showAdvanced ? '▼' : '▶' }}</span>
-                  高级采样参数
-                </div>
-
-                <div v-if="showAdvanced" class="advanced-params">
-                  <div class="form-row">
-                    <div class="form-group half">
-                      <label>Frequency Penalty ({{ frequencyPenaltyLabel }})</label>
-                      <input
-                        type="range"
-                        v-model.number="settings.apiConfig.frequency_penalty"
-                        min="-2"
-                        max="2"
-                        step="0.1"
-                      />
-                    </div>
-                    <div class="form-group half">
-                      <label>Presence Penalty ({{ presencePenaltyLabel }})</label>
-                      <input
-                        type="range"
-                        v-model.number="settings.apiConfig.presence_penalty"
-                        min="-2"
-                        max="2"
-                        step="0.1"
-                      />
-                    </div>
-                  </div>
-
-                  <div class="form-row">
-                    <div class="form-group half">
-                      <label>Top P ({{ topPLabel }})</label>
-                      <input type="range" v-model.number="settings.apiConfig.top_p" min="0" max="1" step="0.01" />
-                    </div>
-                    <div class="form-group half">
-                      <label>Top K</label>
-                      <input type="number" v-model.number="settings.apiConfig.top_k" min="0" max="500" />
-                    </div>
-                  </div>
-                </div>
-              </template>
             </section>
-
             <section class="setting-section" v-show="activeSection === 'live2d'">
               <h4>
                 <span class="section-index">02</span>
@@ -1321,6 +1163,7 @@ import { resolveLive2DExpression, resolveLive2DMotion } from '../live2d/expressi
 import { Live2DManager } from '../live2d/manager';
 import { Live2DStage } from '../live2d/stage';
 import { Live2DUploader } from '../live2d/uploader';
+import { callHost } from '../../bridge/tavern';
 import ModelBrowser from './ModelBrowser.vue';
 
 const props = defineProps<{
@@ -1332,7 +1175,7 @@ const emit = defineEmits<{
   'model-change': [path: string];
 }>();
 
-type SectionKey = 'api' | 'live2d' | 'comment' | 'expression' | 'tts' | 'about';
+type SectionKey = 'model' | 'live2d' | 'comment' | 'expression' | 'tts' | 'about';
 
 const sectionTabs: ReadonlyArray<{
   key: SectionKey;
@@ -1340,15 +1183,60 @@ const sectionTabs: ReadonlyArray<{
   label: string;
   en: string;
 }> = [
-  { key: 'api', index: '01', label: 'API 设置', en: 'API CONTROL' },
-  { key: 'live2d', index: '02', label: 'Live2D', en: 'MODEL CONTROL' },
+  { key: 'model', index: '01', label: '模型', en: 'MODEL CONTROL' },
+  { key: 'live2d', index: '02', label: 'Live2D', en: 'LIVE2D MODEL' },
   { key: 'comment', index: '03', label: '吐槽', en: 'COMMENT SYSTEM' },
   { key: 'expression', index: '04', label: '表情', en: 'EMOTION COT' },
-  { key: 'tts', index: '05', label: 'TTS', en: 'VOICE CONTROL' },
+  { key: 'tts', index: '05', label: '朗读', en: 'VOICE CONTROL' },
   { key: 'about', index: '06', label: '关于', en: 'ABOUT & LICENSE' },
 ];
 
-const activeSection = ref<SectionKey>('api');
+// 默认停在 Live2D：这是玩家最常改的一页（换模型、调大小）。
+const activeSection = ref<SectionKey>('live2d');
+
+// 「模型」页的候选列表：由宿主侧列这台机器上可用的通道与模型。
+const modelCatalogState = ref<'loading' | 'ready' | 'error'>('loading');
+const modelCatalogError = ref('');
+const commentModelOptions = ref<Array<{ value: string; label: string }>>([]);
+
+async function loadCommentModelOptions(): Promise<void> {
+  if (modelCatalogState.value === 'ready') return;
+  modelCatalogState.value = 'loading';
+  modelCatalogError.value = '';
+  try {
+    const reply = await callHost('dsh-tavern-desktop-pet/models', {});
+    const options: Array<{ value: string; label: string }> = [];
+    for (const provider of reply?.providers || []) {
+      for (const model of provider.models || []) {
+        options.push({
+          value: `${provider.provider}|${model}`,
+          label: `${provider.label || provider.provider} · ${model}`,
+        });
+      }
+    }
+    commentModelOptions.value = options;
+    modelCatalogState.value = 'ready';
+  } catch (e) {
+    modelCatalogError.value = `读取模型列表失败：${e instanceof Error ? e.message : String(e)}`;
+    modelCatalogState.value = 'error';
+  }
+}
+
+function onCommentModelChange(event: Event): void {
+  const raw = String((event.target as HTMLSelectElement | null)?.value || '');
+  const [provider, model] = raw.split('|');
+  settings.value.commentModelProvider = provider || '';
+  settings.value.commentModelModel = model || '';
+}
+
+// 打开面板时顺手取一次；失败不阻塞别的设置页。
+watch(
+  () => props.visible,
+  (visible) => {
+    if (visible) void loadCommentModelOptions();
+  },
+  { immediate: true },
+);
 
 const store = useSettingsStore();
 const { settings } = storeToRefs(store);
@@ -2311,7 +2199,7 @@ const overlayFallbackStyle = {
   width: '100vw',
   height: '100vh',
   minHeight: '100vh',
-  zIndex: '10001',
+  zIndex: '1500',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -4141,7 +4029,8 @@ watch(
       return;
     }
     ensureNumericSettingsIntegrity();
-    activeSection.value = 'api';
+    // 记住上次看的分区；第一次打开停在 Live2D。
+    if (!sectionTabs.some((tab) => tab.key === activeSection.value)) activeSection.value = 'live2d';
     customModelUrl.value = settings.value.modelPath || '';
     showEmotionAdvanced.value = false;
     ttsEnabled.value = getTTSEnabled();
@@ -4879,7 +4768,7 @@ watch(
 }
 
 .browser-overlay {
-  @include theme.overlay-backdrop(10002, 0.8);
+  @include theme.overlay-backdrop(1550, 0.8);
   padding: 12px;
   box-sizing: border-box;
   overflow: auto;

@@ -31,6 +31,13 @@ test('运行时不再从 CDN 取框架：Vue/Pinia/zod/klona 全部内联', asyn
   assert.ok(code.includes('live2dcubismcore'), 'Live2D 引擎应保留（可回退到本地文件）')
 })
 
+test('react 走加载器提供的 require，不内联', async () => {
+  const code = await read('lib/client.js')
+  assert.match(code, /require\("react"\)/, '面板要用的 React 必须由 factory 的 require 取')
+  // vue 依然内联（它不是平台基座里的模块）。
+  assert.ok(code.includes('createApp'), 'Vue 应当内联进 bundle')
+})
+
 test('样式里不引外部字体', async () => {
   const code = await read('lib/client.js')
   assert.doesNotMatch(code, /fonts\.googleapis\.com/, '桌宠要能在断网环境里跑')
