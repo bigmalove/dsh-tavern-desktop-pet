@@ -739,8 +739,9 @@ export const Commentator = {
     const gameId = currentGameId();
     if (!gameId) throw new Error('还没有打开一局游戏');
     const store = useSettingsStore();
-    const chosen = store.settings.commentModel;
-    const selection = chosen?.provider && chosen?.model ? { provider: chosen.provider, model: chosen.model } : undefined;
+    const provider = String(store.settings.commentModelProvider || '').trim();
+    const model = String(store.settings.commentModelModel || '').trim();
+    const selection = provider && model ? { provider, model } : undefined;
     const reply = await callHost('dsh-tavern-desktop-pet/comment', { gameId, system, user, selection });
     const text = String(reply?.text || '').trim();
     if (text) this._onComment?.(text, false);

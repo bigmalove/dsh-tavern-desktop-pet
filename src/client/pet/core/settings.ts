@@ -89,12 +89,9 @@ const SettingsSchema = z
 
     // 吐槽配置
     // 空 = 跟随本局后台模型；填了就用这个通道/模型（Tavern 的 llm 服务里现有的）。
-    commentModel: z
-      .object({
-        provider: z.string().default(),
-        model: z.string().default(),
-      })
-      .default({}),
+    // 用两个扁平字段而不是嵌套对象：zod 的对象级 default 不会补内部字段。
+    commentModelProvider: z.string().default(''),
+    commentModelModel: z.string().default(''),
     commentStyle: z.enum(COMMENT_STYLES).default(DEFAULTS.COMMENT_STYLE),
     commentTriggerMode: z.enum(COMMENT_TRIGGER_MODES).default(DEFAULTS.COMMENT_TRIGGER_MODE),
     customPrompt: z.string().default(''),

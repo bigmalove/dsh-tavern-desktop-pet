@@ -1532,16 +1532,17 @@ onMounted(() => {
       pieces.push(settings.value.modelPath ? `模型：${settings.value.modelPath}` : '尚未选择模型');
       pieces.push(`大小：${Math.round(normalizePetScale(settings.value.petScale) * 100)}%`);
       pieces.push(settings.value.autoTrigger ? `每 ${settings.value.triggerInterval} 轮吐槽一次` : '手动吐槽');
-      const chosen = settings.value.commentModel;
-      if (chosen?.provider && chosen?.model) pieces.push(`吐槽模型：${chosen.model}`);
+      const model = String(settings.value.commentModelModel || '').trim();
+      if (model) pieces.push(`吐槽模型：${model}`);
       return pieces.join(' · ');
     },
-    commentModel: () => ({ ...settings.value.commentModel }),
+    commentModel: () => ({
+      provider: String(settings.value.commentModelProvider || ''),
+      model: String(settings.value.commentModelModel || ''),
+    }),
     setCommentModel: (next: { provider: string; model: string }) => {
-      settings.value.commentModel = {
-        provider: String(next?.provider || ''),
-        model: String(next?.model || ''),
-      };
+      settings.value.commentModelProvider = String(next?.provider || '');
+      settings.value.commentModelModel = String(next?.model || '');
     },
   });
   initPet();
