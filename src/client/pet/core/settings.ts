@@ -129,101 +129,10 @@ const SettingsSchema = z
           .default({}),
       )
       .default([]),
-    // TTS provider
-    ttsProvider: z.enum(['littlewhitebox', 'gpt_sovits_v2', 'edge_tts_direct']).default('littlewhitebox'),
+    // 朗读：渠道与声音由 Tavern 统一管理（设置 → DSH Tavern → 显示与交互 → 配音），
+    // 这里只留两个真的生效的开关。
     ttsAutoPlay: z.boolean().default(true),
     ttsBilingualZhJaEnabled: z.boolean().default(DEFAULTS.TTS_BILINGUAL_ZH_JA_ENABLED),
-    phoneMessageAutoRead: z.boolean().default(DEFAULTS.PHONE_MESSAGE_AUTO_READ),
-    baibaiPhoneMessageAutoRead: z.boolean().default(DEFAULTS.BAIBAI_PHONE_MESSAGE_AUTO_READ),
-    ttsDefaultSpeaker: z.string().default(''),
-    lipSyncManualParamsEnabled: z.boolean().default(false),
-    lipSyncManualParamIds: z.array(z.string()).default([]),
-    gptSoVits: z
-      .object({
-        apiUrl: z.string().default('http://127.0.0.1:9880'),
-        endpoint: z.string().default('/tts'),
-        useCorsProxy: z.boolean().default(true),
-        mediaType: z.enum(['wav', 'ogg', 'raw']).default('wav'),
-        streamingMode: z.boolean().default(true),
-        textLang: z.string().default('auto'),
-        textSplitMethod: z.string().default('cut5'),
-        speedFactor: z.number().min(0.1).max(3).default(1),
-        strictWeightSwitch: z.boolean().default(false),
-        probeOnAudioError: z.boolean().default(false),
-        modelSwitchMode: z.enum(['none', 'set_model', 'set_weights']).default('set_weights'),
-        setModelEndpoint: z.string().default('/set_model'),
-        rootDir: z.string().default(''),
-        importPathPrefix: z.string().default(''),
-        models: z
-          .array(
-            z
-              .object({
-                id: z.string().default(''),
-                name: z.string().default(''),
-                enabled: z.boolean().default(true),
-                desc: z.string().default(''),
-                paths: z
-                  .object({
-                    gptWeightsPath: z.string().default(''),
-                    sovitsWeightsPath: z.string().default(''),
-                    defaultRefAudioPath: z.string().default(''),
-                  })
-                  .default({}),
-                params: z
-                  .object({
-                    promptText: z.string().default(''),
-                    promptLang: z.string().default('zh'),
-                    textLang: z.string().default('auto'),
-                    textSplitMethod: z.string().default('cut5'),
-                    speedFactor: z.number().min(0.1).max(3).default(1),
-                    mediaType: z.enum(['wav', 'ogg', 'raw']).default('wav'),
-                    streamingMode: z.boolean().default(true),
-                    modelSwitchMode: z.enum(['none', 'set_model', 'set_weights']).default('set_weights'),
-                    setModelEndpoint: z.string().default('/set_model'),
-                    strictWeightSwitch: z.boolean().default(false),
-                  })
-                  .default({}),
-                refAudios: z
-                  .array(
-                    z
-                      .object({
-                        id: z.string().default(''),
-                        name: z.string().default(''),
-                        path: z.string().default(''),
-                        promptText: z.string().default(''),
-                        promptLang: z.string().default('zh'),
-                        textLang: z.string().default('auto'),
-                      })
-                      .default({}),
-                  )
-                  .default([]),
-                defaultRefId: z.string().default(''),
-                expressionRefMap: z.record(z.string(), z.string()).default({}),
-              })
-              .default({}),
-          )
-          .default([]),
-        voices: z
-          .array(
-            z
-              .object({
-                name: z.string().default(''),
-                desc: z.string().default(''),
-                refAudioPath: z.string().default(''),
-                promptText: z.string().default(''),
-                promptLang: z.string().default(''),
-                textLang: z.string().default(''),
-                gptWeightsPath: z.string().default(''),
-                sovitsWeightsPath: z.string().default(''),
-                modelSwitchMode: z.enum(['none', 'set_model', 'set_weights']).default('set_weights'),
-                setModelEndpoint: z.string().default('/set_model'),
-                strictWeightSwitch: z.boolean().default(false),
-              })
-              .default({}),
-          )
-          .default([]),
-      })
-      .default({}),
   })
   .default({});
 

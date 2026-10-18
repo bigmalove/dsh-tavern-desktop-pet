@@ -1352,29 +1352,11 @@ export const Live2DManager = {
   },
 
   _refreshManualMouthParams(): void {
-    let enabled = false;
-    const ids: string[] = [];
-    try {
-      const store = useSettingsStore();
-      const s = store.settings as any;
-      enabled = !!s?.lipSyncManualParamsEnabled;
-      const raw = Array.isArray(s?.lipSyncManualParamIds) ? s.lipSyncManualParamIds : [];
-      const set = new Set<string>();
-      for (const item of raw) {
-        const id = String(item || '').trim();
-        if (!id) continue;
-        const low = id.toLowerCase();
-        if (set.has(low)) continue;
-        set.add(low);
-        ids.push(id);
-      }
-    } catch {
-      // ignore
-    }
-
-    this._manualMouthParamEnabled = enabled;
-    this._manualMouthParamIds = ids;
-    this._manualMouthParamIdSet = new Set(ids.map(id => id.toLowerCase()));
+    // 朗读已改走 Tavern 的 speak，音频元素不经过这里，口型同步没有驱动源；
+    // 上游那套「手动嘴部参数」设置已删，这里保持禁用即可。
+    this._manualMouthParamEnabled = false;
+    this._manualMouthParamIds = [];
+    this._manualMouthParamIdSet = new Set();
   },
 
   _setLipSyncActive(active: boolean): void {
