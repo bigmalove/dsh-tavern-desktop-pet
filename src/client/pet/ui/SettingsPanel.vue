@@ -263,58 +263,6 @@
                 <div class="hint">默认 -1 不自动关闭；设置为 0 表示生成完成后立即关闭。</div>
               </div>
 
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" v-model="settings.useTamakoTodaySpecial" />
-                  兼容 Tamako 今日特选
-                </label>
-                <div class="hint">开启后会优先读取 Tamako Market 今日特选作为上下文。</div>
-              </div>
-
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" v-model="settings.useDiceDatabaseReference" />
-                  参考数据库（建议 + 点评）
-                </label>
-                <div class="hint">启用后会读取骰子数据库摘要作为参考内容。</div>
-              </div>
-
-              <div class="form-group" v-if="settings.useDiceDatabaseReference">
-                <label>可见数据库表（勾选后才会被引用）</label>
-
-                <div class="form-row">
-                  <div class="form-group half">
-                    <button
-                      class="btn btn-test"
-                      type="button"
-                      @click="refreshDiceReferenceSheetOptions"
-                      :disabled="refreshingDiceSheetOptions"
-                    >
-                      {{ refreshingDiceSheetOptions ? '刷新中...' : '刷新表列表' }}
-                    </button>
-                  </div>
-                  <div class="form-group half">
-                    <button class="btn btn-secondary" type="button" @click="selectAllDiceReferenceSheets">全选</button>
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <button class="btn btn-secondary" type="button" @click="clearDiceReferenceSheets">清空筛选</button>
-                  <div class="hint">{{ diceReferenceSheetSummary }}</div>
-                </div>
-
-                <div class="dice-sheet-list" v-if="diceReferenceSheetOptions.length > 0">
-                  <label class="dice-sheet-item" v-for="sheetName in diceReferenceSheetOptions" :key="sheetName">
-                    <input
-                      type="checkbox"
-                      :checked="isDiceSheetVisible(sheetName)"
-                      @change="onToggleDiceSheetVisibility(sheetName, $event)"
-                    />
-                    <span>{{ sheetName }}</span>
-                  </label>
-                </div>
-                <div class="hint" v-else>未读取到表名，可先在骰子系统中完成一次数据库更新后再刷新。</div>
-              </div>
             </section>
 
             <section class="setting-section" v-show="activeSection === 'expression'">
@@ -608,7 +556,6 @@
     </div>
 
 
-
     <div
       v-if="showBrowser"
       class="browser-overlay dp-browser-overlay"
@@ -816,236 +763,8 @@ const localModelInfo = ref<StoredLive2DModel | null>(null);
 const localModelBusy = computed(() => uploadingLocalModel.value || localModelActionBusy.value);
 const localModelExists = computed(() => !!localModelInfo.value);
 
-const diceReferenceSheetOptions = ref<string[]>([]);
-const refreshingDiceSheetOptions = ref(false);
-
-function normalizeDiceReferenceSheetName(value: unknown): string {
-  return String(value ?? '')
-    .replace(/\u00a0/g, ' ')
-    .replace(/\r\n/g, '\n')
-    .replace(/\n+/g, ' ')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-}
-
-function dedupeDiceReferenceSheetNames(values: string[]): string[] {
-  const seen = new Set<string>();
-  const list: string[] = [];
-  for (const value of values) {
-    const name = normalizeDiceReferenceSheetName(value);
-    if (!name) continue;
-    if (seen.has(name)) continue;
-    seen.add(name);
-    list.push(name);
-  }
-  return list;
-}
-
-function parseDiceReferenceRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value === 'string') {
-    const text = value.trim();
-    if (!text) return null;
-    try {
-      return parseDiceReferenceRecord(JSON.parse(text));
-    } catch {
-      return null;
-    }
-  }
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-  return value as Record<string, unknown>;
-}
-
-function isDiceReferencePayload(record: Record<string, unknown>): boolean {
-  return Object.keys(record).some(key => key.startsWith('sheet_'));
-}
-
-function extractDiceReferenceSheetNamesFromPayload(payload: unknown): string[] {
-  const record = parseDiceReferenceRecord(payload);
-  if (!record) return [];
-
-  let tableRecord: Record<string, unknown> | null = record;
-  if (!isDiceReferencePayload(tableRecord)) {
-    const nested = parseDiceReferenceRecord(tableRecord.independentData);
-    if (!nested || !isDiceReferencePayload(nested)) {
-      return [];
-    }
-    tableRecord = nested;
-  }
-
-  return dedupeDiceReferenceSheetNames(
-    Object.keys(tableRecord)
-      .filter(key => key.startsWith('sheet_'))
-      .map(key => {
-        const sheet = parseDiceReferenceRecord(tableRecord?.[key]);
-        return sheet?.name ?? '';
-      }),
-  );
-}
-
-function pickDiceReferencePayloadFromIsolatedData(value: unknown): Record<string, unknown> | null {
-  const isolated = parseDiceReferenceRecord(value);
-  if (!isolated) return null;
-
-  const keys = Object.keys(isolated);
-  for (let i = keys.length - 1; i >= 0; i--) {
-    const slot = parseDiceReferenceRecord(isolated[keys[i]]);
-    if (!slot) continue;
-    const payload = parseDiceReferenceRecord(slot.independentData);
-    if (payload && isDiceReferencePayload(payload)) {
-      return payload;
-    }
-  }
-  return null;
-}
-
-function pickDiceReferencePayloadFromMessage(message: any): Record<string, unknown> | null {
-  if (!message || typeof message !== 'object') return null;
-
-  const directCandidates: unknown[] = [
-    message.TavernDB_ACU_IndependentData,
-    message.TavernDB_ACU_Data,
-    message.TavernDB_ACU_SummaryData,
-    message.data?.TavernDB_ACU_IndependentData,
-    message.data?.TavernDB_ACU_Data,
-    message.data?.TavernDB_ACU_SummaryData,
-  ];
-  for (const candidate of directCandidates) {
-    const payload = parseDiceReferenceRecord(candidate);
-    if (!payload) continue;
-    if (isDiceReferencePayload(payload)) {
-      return payload;
-    }
-    const nested = parseDiceReferenceRecord(payload.independentData);
-    if (nested && isDiceReferencePayload(nested)) {
-      return nested;
-    }
-  }
-
-  const isolatedCandidates = [message.TavernDB_ACU_IsolatedData, message.data?.TavernDB_ACU_IsolatedData];
-  for (const candidate of isolatedCandidates) {
-    const payload = pickDiceReferencePayloadFromIsolatedData(candidate);
-    if (payload) return payload;
-  }
-
-  return null;
-}
-
-function readDiceReferenceSheetNamesFromApi(): string[] {
-  try {
-    const topWindow = window.parent ?? window;
-    const api = (topWindow as any)?.AutoCardUpdaterAPI;
-    if (!api || typeof api.exportTableAsJson !== 'function') {
-      return [];
-    }
-    return extractDiceReferenceSheetNamesFromPayload(api.exportTableAsJson());
-  } catch {
-    return [];
-  }
-}
-
-function readDiceReferenceSheetNamesFromChat(): string[] {
-  try {
-    const messages = getChatMessages(`0-{{lastMessageId}}`, {
-      role: 'all',
-      hide_state: 'all',
-    });
-    const list = Array.isArray(messages) ? messages : [];
-    for (let i = list.length - 1; i >= 0; i--) {
-      const payload = pickDiceReferencePayloadFromMessage(list[i] as any);
-      if (!payload) continue;
-      const names = extractDiceReferenceSheetNamesFromPayload(payload);
-      if (names.length > 0) return names;
-    }
-  } catch {
-    // ignore
-  }
-  return [];
-}
-
-function getDiceReferenceSelectedSheets(): string[] {
-  const raw = Array.isArray((settings.value as any).diceReferenceVisibleSheets)
-    ? ((settings.value as any).diceReferenceVisibleSheets as unknown[])
-    : [];
-  return dedupeDiceReferenceSheetNames(raw.map(item => String(item ?? '')));
-}
-
-function setDiceReferenceSelectedSheets(next: string[]): void {
-  (settings.value as any).diceReferenceVisibleSheets = dedupeDiceReferenceSheetNames(next);
-}
-
-function isDiceSheetVisible(sheetName: string): boolean {
-  const selected = getDiceReferenceSelectedSheets();
-  if (selected.length === 0) return true;
-  return selected.includes(sheetName);
-}
-
-function onToggleDiceSheetVisibility(sheetName: string, event: Event): void {
-  const target = event?.target as HTMLInputElement | null;
-  const checked = !!target?.checked;
-  const options = diceReferenceSheetOptions.value;
-  const current = getDiceReferenceSelectedSheets();
-  let next = current.length === 0 ? [...options] : [...current];
-
-  if (checked) {
-    if (!next.includes(sheetName)) {
-      next.push(sheetName);
-    }
-  } else {
-    next = next.filter(name => name !== sheetName);
-  }
-
-  // 空数组表示“全部可见”
-  if (options.length > 0 && next.length === options.length) {
-    next = [];
-  }
-  setDiceReferenceSelectedSheets(next);
-}
-
-const diceReferenceSheetSummary = computed(() => {
-  const optionsCount = diceReferenceSheetOptions.value.length;
-  const selected = getDiceReferenceSelectedSheets();
-  if (optionsCount <= 0) {
-    return '暂无可用表名。';
-  }
-  if (selected.length === 0) {
-    return `当前：全部可见（${optionsCount}/${optionsCount}）`;
-  }
-  return `当前：已勾选 ${selected.length}/${optionsCount}`;
-});
-
-function refreshDiceReferenceSheetOptions(): void {
-  refreshingDiceSheetOptions.value = true;
-  try {
-    const fromApi = readDiceReferenceSheetNamesFromApi();
-    const fromChat = fromApi.length > 0 ? [] : readDiceReferenceSheetNamesFromChat();
-    const selected = getDiceReferenceSelectedSheets();
-    diceReferenceSheetOptions.value = dedupeDiceReferenceSheetNames([
-      ...fromApi,
-      ...fromChat,
-      ...selected,
-    ]);
-  } finally {
-    refreshingDiceSheetOptions.value = false;
-  }
-}
-
-function selectAllDiceReferenceSheets(): void {
-  // 空数组表示“全部可见”
-  setDiceReferenceSelectedSheets([]);
-}
-
-function clearDiceReferenceSheets(): void {
-  // 空数组表示“全部可见”
-  setDiceReferenceSelectedSheets([]);
-}
-
 const ttsTestText = ref('你好，我是桌宠。');
 const ttsTestHint = ref('');
-
-
-
 
 
 const emotionTags = EMOTION_TAGS;
@@ -1922,13 +1641,6 @@ async function refreshProxyPresetOptions(): Promise<void> {
 }
 
 
-
-
-
-
-
-
-
 function formatFileSize(fileSize: unknown): string {
   const bytes = Number(fileSize || 0);
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
@@ -2263,67 +1975,6 @@ function normalizeImportRootPathLocal(input: unknown): string {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /** 试听：直接用 Tavern 当前选中的配音渠道念一句，不再经过上游那三个 TTS 引擎。 */
 async function testTts(): Promise<void> {
   const body = String(ttsTestText.value || '').trim() || '你好，我是桌宠。';
@@ -2344,8 +1995,6 @@ function stopTts(): void {
 }
 
 
-
-
 watch(
   () => props.visible,
   visible => {
@@ -2358,7 +2007,6 @@ watch(
     showEmotionAdvanced.value = false;
     localModelStatus.value = '';
     localModelError.value = '';
-    refreshDiceReferenceSheetOptions();
     void refreshLocalModelInfo();
     if (settings.value.apiMode !== 'custom') {
       resetCustomApiState();
@@ -2382,13 +2030,6 @@ watch(
   },
 );
 
-watch(
-  () => settings.value.useDiceDatabaseReference,
-  enabled => {
-    if (!enabled) return;
-    refreshDiceReferenceSheetOptions();
-  },
-);
 </script>
 
 <style lang="scss" scoped>
@@ -2659,29 +2300,6 @@ watch(
     flex: 1;
     min-width: 0;
   }
-}
-
-.dice-sheet-list {
-  margin-top: 6px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 8px;
-}
-
-.dice-sheet-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.04);
-  font-size: 12px;
-  color: #e8e8e8;
-  line-height: 1.35;
-}
-
-.dice-sheet-item input[type='checkbox'] {
-  margin: 0;
 }
 
 .input-with-btn {

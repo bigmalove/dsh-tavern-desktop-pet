@@ -62,6 +62,7 @@ tests/packaging.test.mjs    产物形状 / 离线自足 / 元数据
 - **配音**：上游那套 Edge TTS / GPT-SoVITS / 小白盒，以及配套的引擎下拉、音色列表、模型管理器，在 Tavern 里**没有任何读取方**，连实现文件一起删了（约 3000 行）。朗读改走 `tavernUi.speak`，「朗读」页只剩两个真的生效的开关：自动朗读、中日双语，外加一个走 Tavern 渠道的试听。
 - **口型同步**：上游靠 `TTSManager` 的 audio 元素驱动，朗读改走 Tavern 后拿不到那个元素，所以整条链路（`live2d/lip-sync.ts` 与嘴部参数设置）一起删了。要做回来得等 Tavern 提供朗读的音频流。
 - **手机 TTS 桥**：上游监听第三方「手机」扩展的 CustomEvent 来朗读手机消息，那些扩展在 Tavern 里不存在，删。
+- **Tamako 今日特选 / 骰子数据库参考**：数据源是酒馆的 Tamako Market 扩展（`#tamako-market-window` 的 DOM）与 AutoCardUpdater（`window.AutoCardUpdaterAPI`、消息上的 `TavernDB_ACU_*` 字段），Tavern 里两者都没有，勾了也只会打印「未读取到可用数据」。两个开关连同解析代码一起删。
 - **层级**：舞台 `10000 → 1200`、气泡 `10004 → 1300`、菜单 `10002 → 1400`、设置 `10001 → 1500`，压在 Tavern 的弹窗（2300）之下，不再盖住原生 UI。
 - **默认尺寸**：`PET_SCALE 0.3 → 0.55`（280×360 的基准画面太小吃不住高分屏）。
 - **删除**：`utils/style-teleport.ts`（同窗口下不需要跨文档搬样式）、jQueryUI 拖拽依赖（落到上游自带的 pointer 拖拽回退）。

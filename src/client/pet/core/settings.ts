@@ -103,9 +103,6 @@ const SettingsSchema = z
     triggerProbability: z.number().min(0).max(100).default(DEFAULTS.TRIGGER_PROBABILITY),
     maxChatContext: z.number().min(1).max(50).default(DEFAULTS.MAX_CHAT_CONTEXT),
     bubbleDuration: z.number().min(-1).max(600000).default(DEFAULTS.BUBBLE_DURATION),
-    useTamakoTodaySpecial: z.boolean().default(DEFAULTS.USE_TAMAKO_TODAY_SPECIAL),
-    useDiceDatabaseReference: z.boolean().default(DEFAULTS.USE_DICE_DATABASE_REFERENCE),
-    diceReferenceVisibleSheets: z.array(z.string()).default([]),
 
     // 表情 COT 配置
     emotionCotEnabled: z.boolean().default(true),

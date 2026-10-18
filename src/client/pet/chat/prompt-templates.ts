@@ -12,10 +12,6 @@ export interface RoleplayPromptOptions {
   ignoreCommentStyle?: boolean;
 }
 
-export interface DiceReferencePromptOptions {
-  referenceText?: string;
-}
-
 /** 内置吐槽风格提示词模板 */
 export const PROMPT_TEMPLATES: Record<Exclude<CommentStyle, '自定义'>, StyleTemplate> = {
   毒舌吐槽: {
@@ -204,31 +200,6 @@ function buildContextLines(chatContext: Array<{ role: string; name: string; mess
   return chatContext.map(msg => `${msg.name}(${msg.role}): ${String(msg.message ?? '')}`).join('\n');
 }
 
-function getDiceReferenceText(diceReference?: DiceReferencePromptOptions): string {
-  return String(diceReference?.referenceText || '').trim();
-}
-
-function buildDiceReferenceInstruction(diceReference?: DiceReferencePromptOptions): string {
-  const referenceText = getDiceReferenceText(diceReference);
-  if (!referenceText) {
-    return '';
-  }
-
-  return (
-    `【数据库参考】\n` +
-    `以下内容来自数据库，请将其作为“参考信息”结合当前对话理解，不要逐字复述。\n` +
-    `${referenceText}`
-  );
-}
-
-function appendDiceAdviceRequirement(responseFormat: string, diceReference?: DiceReferencePromptOptions): string {
-  const referenceText = getDiceReferenceText(diceReference);
-  if (!referenceText) {
-    return responseFormat;
-  }
-  return `${responseFormat}\n并在回复中做到：先给一句点评，再给 1 条具体建议。`;
-}
-
 /**
  * 构建完整的 LLM 提示词
  */
@@ -238,7 +209,6 @@ export function buildPrompt(
   chatContext: Array<{ role: string; name: string; message: string }>,
   emotionCotEnabled = false,
   roleplay?: RoleplayPromptOptions,
-  diceReference?: DiceReferencePromptOptions,
   bilingualZhJaEnabled = false,
 ): { system: string; user: string } {
   const ignoreStyleByRoleplay = shouldIgnoreStyleByRoleplay(roleplay);
@@ -248,15 +218,13 @@ export function buildPrompt(
         responseFormat: '用1-2句简短的话做出评论，不超过50字。',
       }
     : resolvePromptTemplate(style, customPrompt);
-  const responseFormatWithAdvice = appendDiceAdviceRequirement(responseFormat, diceReference);
   const responseFormatWithEmotion = emotionCotEnabled
-    ? appendEmotionCotFormat(responseFormatWithAdvice)
-    : responseFormatWithAdvice;
+    ? appendEmotionCotFormat(responseFormat)
+    : responseFormat;
   const finalFormat = bilingualZhJaEnabled
     ? appendZhJaBilingualFormat(responseFormatWithEmotion)
     : responseFormatWithEmotion;
   const roleplayInstruction = buildRoleplayInstruction(roleplay);
-  const diceReferenceInstruction = buildDiceReferenceInstruction(diceReference);
 
   // 构建聊天上下文摘要
   const contextLines = buildContextLines(chatContext);
@@ -264,9 +232,6 @@ export function buildPrompt(
   const systemParts = [systemPrompt];
   if (roleplayInstruction) {
     systemParts.push(roleplayInstruction);
-  }
-  if (diceReferenceInstruction) {
-    systemParts.push(diceReferenceInstruction);
   }
   systemParts.push(`回复格式要求：${finalFormat}`);
 
@@ -286,7 +251,6 @@ export function buildChatPrompt(
   userMessage: string,
   emotionCotEnabled = false,
   roleplay?: RoleplayPromptOptions,
-  diceReference?: DiceReferencePromptOptions,
   bilingualZhJaEnabled = false,
 ): { system: string; user: string } {
   const ignoreStyleByRoleplay = shouldIgnoreStyleByRoleplay(roleplay);
@@ -296,15 +260,13 @@ export function buildChatPrompt(
       }
     : resolvePromptTemplate(style, customPrompt);
   const responseFormat = ignoreStyleByRoleplay ? '用1-3句话回复用户，不超过80字。' : getChatResponseFormat(style);
-  const responseFormatWithAdvice = appendDiceAdviceRequirement(responseFormat, diceReference);
   const responseFormatWithEmotion = emotionCotEnabled
-    ? appendEmotionCotFormat(responseFormatWithAdvice)
-    : responseFormatWithAdvice;
+    ? appendEmotionCotFormat(responseFormat)
+    : responseFormat;
   const finalFormat = bilingualZhJaEnabled
     ? appendZhJaBilingualFormat(responseFormatWithEmotion)
     : responseFormatWithEmotion;
   const roleplayInstruction = buildRoleplayInstruction(roleplay);
-  const diceReferenceInstruction = buildDiceReferenceInstruction(diceReference);
   const roleName = String(roleplay?.roleName || '').trim();
 
   const contextLines = buildContextLines(chatContext);
@@ -313,9 +275,6 @@ export function buildChatPrompt(
   const systemParts = [systemPrompt];
   if (roleplayInstruction) {
     systemParts.push(roleplayInstruction);
-  }
-  if (diceReferenceInstruction) {
-    systemParts.push(diceReferenceInstruction);
   }
   systemParts.push(`回复格式要求：${finalFormat}`);
   systemParts.push(roleName ? '你现在需要保持该角色设定与用户聊天。' : '你现在需要以桌面宠物的身份与用户聊天。');
