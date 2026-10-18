@@ -1,9 +1,9 @@
-// 打包约束的回归测试：产物形状、离线自足、元数据。
+// 打包约束的回归测试：产物形状、离线自足、清单字段。
 //
-// 这三条任何一条坏了，插件在玩家的 Tavern 里就加载不出来或报一堆网络错误，
-// 而单看源码完全看不出来——所以对着构建产物测。
+// 这些任何一条坏了，插件在玩家的 Tavern 里就加载不出来或报一堆网络错误，
+// 而单看源码完全看不出来——所以对着仓库根目录的产物测。
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
@@ -11,8 +11,17 @@ import { fileURLToPath } from 'node:url'
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const read = (relative) => readFile(path.join(root, relative), 'utf8')
 
+const exists = async (relative) => {
+  try {
+    await stat(path.join(root, relative))
+    return true
+  } catch {
+    return false
+  }
+}
+
 test('client bundle 是 Tavern 加载器要的 classic CJS 形状', async () => {
-  const code = await read('lib/client.js')
+  const code = await read('client.js')
   assert.match(code, /^\/\/ dsh-tavern-desktop-pet/, '缺少产物头注释')
   assert.match(code, /window\.__ModuleLoader__\.load\(\{/)
   assert.match(code, /id: "dsh-tavern-desktop-pet"/, 'id 必须与 package.json 的 name 一致')
@@ -23,7 +32,7 @@ test('client bundle 是 Tavern 加载器要的 classic CJS 形状', async () => 
 })
 
 test('运行时不再从 CDN 取框架：Vue/Pinia/zod/klona 全部内联', async () => {
-  const code = await read('lib/client.js')
+  const code = await read('client.js')
   assert.doesNotMatch(code, /from\s*['"]https:\/\/[^'"]*jsdelivr[^'"]*['"]/, '不允许 ESM 形式的外链 import')
   assert.doesNotMatch(code, /import\(\s*['"]https:\/\/[^'"]*jsdelivr/, '不允许动态 import 外链')
   assert.doesNotMatch(code, /pinia\/\+esm|klona\/\+esm/, '上游那种从 CDN 取 ESM 的写法必须换掉')
@@ -32,42 +41,58 @@ test('运行时不再从 CDN 取框架：Vue/Pinia/zod/klona 全部内联', asyn
 })
 
 test('react 走加载器提供的 require，不内联', async () => {
-  const code = await read('lib/client.js')
+  const code = await read('client.js')
   assert.match(code, /require\("react"\)/, '面板要用的 React 必须由 factory 的 require 取')
   // vue 依然内联（它不是平台基座里的模块）。
   assert.ok(code.includes('createApp'), 'Vue 应当内联进 bundle')
 })
 
 test('样式里不引外部字体', async () => {
-  const code = await read('lib/client.js')
+  const code = await read('client.js')
   assert.doesNotMatch(code, /fonts\.googleapis\.com/, '桌宠要能在断网环境里跑')
 })
 
 test('样式跟着 bundle 走，卸载时能摘掉', async () => {
-  const code = await read('lib/client.js')
+  const code = await read('client.js')
   assert.ok(code.includes('dsh-tavern-desktop-pet-style'), '要注入带固定 id 的 style')
   assert.ok(code.includes('chat-bubble'), '组件样式应被打进产物')
 })
 
-test('package.json 声明了宿主侧、浏览器侧与版本', async () => {
+test('仓库根目录就是插件文件夹：清单指向的两个半身都在', async () => {
   const pkg = JSON.parse(await read('package.json'))
   assert.equal(pkg.name, 'dsh-tavern-desktop-pet')
   assert.ok(pkg.version, 'version 不能省：DSH 的请求扩展会列 name@version')
-  assert.equal(pkg.exports['.'], './lib/index.js')
-  assert.equal(pkg.exports['./client'], './lib/client.js')
-  assert.equal(pkg.dsh.client.platform, 'web')
+  assert.equal(pkg.type, 'module')
+  assert.equal(pkg.main, 'index.mjs')
+
+  // 加载器先看 exports["."] 再回退 main，两者必须指向真实存在的宿主侧文件。
+  assert.equal(pkg.exports['.'], './index.mjs')
+  assert.equal(pkg.exports['./client'], './client.js')
+  assert.ok(await exists('index.mjs'), '宿主侧产物必须随仓库提交')
+  assert.ok(await exists('client.js'), '浏览器侧产物必须随仓库提交')
+})
+
+test('浏览器侧按 dsh.client 契约声明，且不再要求 cordis 补丁', async () => {
+  const pkg = JSON.parse(await read('package.json'))
+  assert.equal(pkg.dsh.client.platform, 'web', '少了它界面不加载')
   assert.ok(pkg.dsh.client.inject.includes('dsh-tavern-plugin'))
-  assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml')
+  // plugins/ 文件夹加载由 Tavern 自己生成 guard 与补丁条目，
+  // 自己再带一份 dsh.bundle.patch 只会让人以为要走 npm 安装。
+  assert.equal(pkg.dsh.bundle, undefined)
+  assert.equal(await exists('cordis.patch.yml'), false)
 })
 
 test('宿主侧只走 Tavern 的公开接口', async () => {
-  const code = await read('lib/index.js')
-  assert.ok(code.includes("ctx.tavern.handle("), '要用 tavern.handle 暴露给浏览器侧')
+  const code = await read('index.mjs')
+  assert.ok(code.includes('ctx.tavern.handle('), '要用 tavern.handle 暴露给浏览器侧')
   assert.doesNotMatch(code, /tavern-plugin\/lib|profile-data\/tavern\/data/, '不许读 Tavern 的数据目录或内部模块')
+  // 宿主侧随手写 ESM，不依赖任何 npm 包：装进 plugins/ 后不需要 npm install。
+  assert.doesNotMatch(code, /^import .* from '(?!\.)/m, '宿主侧不应 import 外部包')
 })
 
-test('cordis 补丁层登记了插件包', async () => {
-  const yml = await read('cordis.patch.yml')
-  assert.match(yml, /id: tavern-desktop-pet/)
-  assert.match(yml, /name: dsh-tavern-desktop-pet/)
+test('install.mjs 只复制插件文件，不碰 Tavern 内部', async () => {
+  const code = await read('install.mjs')
+  assert.ok(code.includes('profile-data'), '要落到 profile-data/tavern/data/plugins')
+  assert.doesNotMatch(code, /cordis\.patch\.yml|\.tavern-entry\.mjs/, '补丁与 guard 由 Tavern 自己维护')
+  assert.match(code, /from 'node:/, '只用 node 内置模块，克隆后无需 npm install')
 })

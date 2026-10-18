@@ -1,13 +1,16 @@
 // 把 src/client 下的 Vue 应用打成 Tavern 浏览器侧要的 classic CJS bundle。
 //
-// 产物形状和 dsh-tavern-remote / dsh-dream-skin 一致：整份 bundle 包在
-// window.__ModuleLoader__.load({ id, factory }) 里，factory 是 CJS，
-// 返回的 module.exports 带 name / inject / apply，由 cordis 当普通插件消费。
+// 产物落在仓库根目录，跟 package.json 的 exports 一一对应：
+//   client.js  ← 浏览器侧（window.__ModuleLoader__.load({ id, factory })）
+//   index.mjs  ← 宿主侧（ESM，命名导出 name / inject / apply）
+//
+// 也就是说这个仓库本身就是插件文件夹：克隆下来放进
+// <Tavern data>/plugins/dsh-tavern-desktop-pet/ 就能加载，不需要先构建。
 //
 // 三点和普通 vite 库构建不同：
-//   1. external 为空：Vue / Pinia / zod / klona 全部内联，运行时不发网络请求；
+//   1. external 只留 react（平台基座提供）：Vue / Pinia / zod / klona 全部内联，运行时不发网络请求；
 //   2. CSS 不单独出文件：读取后在 factory 顶部注入一个 <style>，卸载时移除；
-//   3. 产物固定叫 lib/client.js，供 package.json 的 exports 引用。
+//   3. 产物直接写根目录，供 package.json 的 main / exports 引用。
 import { build } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
@@ -18,11 +21,9 @@ const root = path.dirname(fileURLToPath(import.meta.url))
 const PLUGIN_ID = 'dsh-tavern-desktop-pet'
 const STYLE_ID = `${PLUGIN_ID}-style`
 const scratch = path.join(root, '.build')
-const outDir = path.join(root, 'lib')
 
 await rm(scratch, { recursive: true, force: true })
 await mkdir(scratch, { recursive: true })
-await mkdir(outDir, { recursive: true })
 
 // react 由 Tavern 的模块表提供（文档要求插件用 require('react') 取），所以不能内联：
 // 保留成 require("react")，让加载器 factory 的 require 去解析平台基座；Vue 等其余全部内联。
@@ -80,11 +81,11 @@ const footer = `    return module.exports;
 });
 `
 
-await writeFile(path.join(outDir, 'client.js'), banner + body + footer, 'utf8')
+await writeFile(path.join(root, 'client.js'), banner + body + footer, 'utf8')
 
-// 宿主侧是手写的 ESM，直接复制，保证 lib/ 里两个半身齐全。
+// 宿主侧是手写的 ESM，直接复制到根目录，保证插件文件夹两半齐全。
 await writeFile(
-  path.join(outDir, 'index.js'),
+  path.join(root, 'index.mjs'),
   await readFile(path.join(root, 'src/host/index.mjs'), 'utf8'),
   'utf8',
 )
@@ -92,39 +93,6 @@ await writeFile(
 await rm(scratch, { recursive: true, force: true })
 
 const size = (n) => `${(n / 1024).toFixed(0)} KB`
-console.log(`client.js ${size((await readFile(path.join(outDir, 'client.js'))).length)}`)
-console.log(`index.js  ${size((await readFile(path.join(outDir, 'index.js'))).length)}`)
+console.log(`client.js ${size((await readFile(path.join(root, 'client.js'))).length)}`)
+console.log(`index.mjs ${size((await readFile(path.join(root, 'index.mjs'))).length)}`)
 console.log(`css       ${size(css.length)}`)
-
-// `node build.mjs --deploy`：把这一份装进 Tavern 的用户插件目录，刷新页面即可看到。
-// 用这种方式验证改动最快；正式分发仍走 dsh.profile.bundles。
-if (process.argv.includes('--deploy')) {
-  const home = process.env.DSH_HOME || path.join(process.env.HOME || '', '.dsh-tavern')
-  const target = path.join(home, 'profile-data', 'tavern', 'data', 'plugins', PLUGIN_ID)
-  await mkdir(target, { recursive: true })
-  await writeFile(path.join(target, 'client.js'), await readFile(path.join(outDir, 'client.js')))
-  await writeFile(path.join(target, 'index.mjs'), await readFile(path.join(outDir, 'index.js')))
-  await writeFile(
-    path.join(target, 'package.json'),
-    JSON.stringify(
-      {
-        name: PLUGIN_ID,
-        // version 不能省：DSH 的请求扩展会把已加载插件包列进请求（name@version），
-        // 缺 version 时清单解析失败，整次模型调用报 request extension preparation failed。
-        version: JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8')).version,
-        private: true,
-        type: 'module',
-        exports: { '.': './index.mjs', './client': './client.js' },
-        dsh: {
-          client: {
-            platform: 'web',
-            inject: ['dsh-tavern-plugin', '@deepseek-ai/dsh-api-session-controller'],
-          },
-        },
-      },
-      null,
-      2,
-    ) + '\n',
-  )
-  console.log(`已安装到 ${target}`)
-}

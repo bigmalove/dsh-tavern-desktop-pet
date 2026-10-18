@@ -4,7 +4,7 @@
 
 桌宠是一层浮在页面右下角的 Live2D 模型：它跟着这一局的正文，按间隔吐槽、按情绪换表情、念台词（配音走 Tavern 已有的渠道），长按出功能菜单，双击立刻逗一次。
 
-这是一个独立仓库，不随 Tavern 分发，也不进 `dsh.profile.bundles`：装进 Tavern 的方式是把构建产物放进 Tavern 的用户插件目录（见下）。
+**这个仓库本身就是一个 DSH Tavern 插件。**根目录就是插件文件夹：`package.json` 是清单，`index.mjs` 是宿主侧，`client.js` 是浏览器侧。放进 Tavern 的 `plugins/` 目录即可加载，不需要先构建。
 
 ![桌宠在 Tavern 里吐槽](docs/screenshot-main.png)
 
@@ -29,20 +29,61 @@
 
 实测注意：模型对极端情节会直接拒绝（连吐槽也一起拒），这是模型自身的内容策略，换个模型或换段剧情即可。
 
-## 装进 Tavern
+## 安装
+
+Tavern 的插件就是「一个文件夹放进数据目录的 `plugins/`」——加载器读 `package.json` 的 `exports["."]`（宿主侧）与 `dsh.client` + `exports["./client"]`（浏览器侧），然后自己在 `cordis.patch.yml` 里补入口。所以这里不需要打包分发，克隆下来就是可用的插件。
+
+**方式一：克隆后复制（推荐）**
 
 ```sh
-npm install          # 首次：装 vite / vue / sass 等构建依赖
-npm run deploy       # 构建并放到 <DSH_HOME>/profile-data/tavern/data/plugins/
+git clone https://github.com/bigmalove/dsh-tavern-desktop-pet.git
+cp -r dsh-tavern-desktop-pet ~/.dsh-tavern/profile-data/tavern/data/plugins/
 ```
 
-`DSH_HOME` 默认 `~/.dsh-tavern`。刷新页面即可（宿主侧改动要重启 DSH）。开发期改 `src/client/**` 后重跑 `npm run deploy`，浏览器侧几秒内自动换成新代码。
+Windows（PowerShell）：
 
-其它脚本：`npm run build`（只构建到 `lib/`）、`npm test`（打包约束测试）。
+```powershell
+git clone https://github.com/bigmalove/dsh-tavern-desktop-pet.git
+Copy-Item -Recurse dsh-tavern-desktop-pet "$HOME\.dsh-tavern\profile-data\tavern\data\plugins\"
+```
+
+**方式二：用仓库里的安装脚本**
+
+```sh
+node install.mjs                        # 装到 ~/.dsh-tavern/...
+DSH_HOME=/path/to/dsh node install.mjs  # 装到别的 DSH
+```
+
+脚本只复制 `package.json` / `index.mjs` / `client.js` / `README.md` / `LICENSE`（和 `assets/`，如果有），不写 Tavern 的任何内部文件。只依赖 node 内置模块，克隆后直接跑，不用 `npm install`。
+
+**装完**
+
+- 浏览器侧：刷新页面即可，`plugins/` 有文件变化时 Tavern 会自己重同步。
+- 宿主侧：`index.mjs` 是 DSH 启动时 import 的，改它要重启 Tavern。
+- 本局开关：在一局里打开「本局设置 → 插件」可以按局关掉它、看插件报错。
+
+> 上表里的 `~/.dsh-tavern` 是默认安装位置；`dsh-tavern` 装在别处时用 `DSH_HOME` 指过去。
+
+## 开发
+
+```sh
+npm install     # vite / vue / sass 等构建依赖
+npm run build   # 重新生成根目录的 client.js 与 index.mjs
+npm run deploy  # 构建 + 装进 ~/.dsh-tavern（开发时用）
+npm test        # 打包约束 + 模板引用检查
+```
+
+改 `src/client/**` 后重跑 `npm run deploy`，刷新页面即是新代码；改 `src/host/**` 需要重启 Tavern。
 
 ## 目录
 
 ```
+package.json                插件清单：main / exports 指向两个半身，dsh.client 声明浏览器侧
+index.mjs                   宿主侧产物（来自 src/host/，构建时复制）
+client.js                   浏览器侧产物（vite 打包，Vue/Pinia/zod 全内联）
+install.mjs                 复制上面几个文件进 <Tavern data>/plugins/
+build.mjs                   vite + plugin-vue → classic CJS bundle，样式内联注入
+tests/**                    打包约束、模板引用、settings schema 一致性
 src/client/main.js          插件入口：装垫片、挂 Vue、注册面板与按钮
 src/client/bridge/shims.js  酒馆全局垫片（toastr / SillyTavern / getVariables / jQuery 壳）
 src/client/bridge/tavern.js 桌宠与 Tavern 之间唯一的桥（当前局、舞台、回合、宿主调用、朗读）

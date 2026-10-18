@@ -1,37 +1,51 @@
 {
   "name": "dsh-tavern-desktop-pet",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "DSH Tavern 桌宠插件：把 Live2D 桌宠（原 SillyTavern 扩展 tavern-desktop-pet）搬到 Tavern 里，跟着剧情吐槽、换表情、念台词。",
   "license": "CC-BY-NC-SA-4.0",
-  "main": "lib/index.js",
+  "main": "index.mjs",
   "exports": {
-    ".": "./lib/index.js",
-    "./client": "./lib/client.js",
+    ".": "./index.mjs",
+    "./client": "./client.js",
     "./package.json": "./package.json"
   },
   "files": [
-    "lib/index.js",
-    "lib/client.js",
-    "cordis.patch.yml",
-    "README.md"
+    "index.mjs",
+    "client.js",
+    "install.mjs",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "dsh-tavern",
+    "tavern",
+    "live2d",
+    "desktop-pet"
   ],
   "dsh": {
-    "bundle": {
-      "patch": "./cordis.patch.yml"
-    },
     "client": {
       "platform": "web",
       "inject": [
         "dsh-tavern-plugin",
         "@deepseek-ai/dsh-api-session-controller"
       ]
+    },
+    "compatibility": {
+      "dsh": ">=0.1.5-rc.2 <0.2.0",
+      "dshTavern": ">=2.7.0",
+      "dshReleases": {
+        "0.1.5-rc.2": "compatible"
+      }
     }
   },
   "scripts": {
     "build": "node build.mjs",
-    "deploy": "node build.mjs --deploy",
+    "install:tavern": "node install.mjs",
+    "deploy": "node build.mjs && node install.mjs",
     "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
