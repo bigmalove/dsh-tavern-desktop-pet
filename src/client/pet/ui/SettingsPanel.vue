@@ -533,72 +533,40 @@
             <section class="setting-section" v-show="activeSection === 'tts'">
               <h4>
                 <span class="section-index">05</span>
-                <span class="section-label">TTS 配音</span>
+                <span class="section-label">朗读</span>
                 <span class="section-sub">VOICE CONTROL</span>
               </h4>
 
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" v-model="ttsEnabled" @change="onToggleTtsEnabled" />
-                  启用 TTS 配音
-                </label>
-                <div class="hint">关闭后不会自动朗读吐槽/手动聊天结果。</div>
-              </div>
-
-              <div class="form-group">
-                <label>TTS 引擎</label>
-                <select v-model="settings.ttsProvider">
-                  <option :value="TTS_PROVIDER.LITTLEWHITEBOX">小白X（豆包火山）</option>
-                  <option :value="TTS_PROVIDER.GPT_SOVITS_V2">GPT-SoVITS v2ProPlus</option>
-                  <option :value="TTS_PROVIDER.EDGE_TTS_DIRECT">EdgeTTS（必须是Edge浏览器）</option>
-                </select>
+              <div class="notice-box">
+                朗读渠道由 Tavern 统一管理（浏览器朗读 / OpenAI 兼容 / GPT-SoVITS / MiniMax），
+                在「设置 → DSH Tavern → 显示与交互 → 配音」里选渠道和声音。
+                桌宠只负责把该念的句子交给 Tavern，并带上情绪，所以这里不再单独填地址和 Key。
               </div>
 
               <div class="form-group">
                 <label>
                   <input type="checkbox" v-model="settings.ttsAutoPlay" />
-                  自动播放（吐槽完成后朗读）
+                  自动朗读（吐槽完成后念出来）
                 </label>
+                <div class="hint">关掉就只显示气泡。朗读同一句只合成一次，之后读缓存。</div>
               </div>
 
               <div class="form-group">
                 <label>
                   <input type="checkbox" v-model="settings.ttsBilingualZhJaEnabled" />
-                  中日双语模式（显示中文，TTS 发送日文）
+                  中日双语模式（显示中文，朗读用日文）
                 </label>
-                <div class="hint">需模型按“中文文本【JP】日文文本”输出；未命中时自动回退中文朗读。</div>
+                <div class="hint">需模型按「中文文本【JP】日文文本」输出；未命中时自动回退中文朗读。</div>
               </div>
 
               <div class="form-group">
-                <label>
-                  <input type="checkbox" v-model="settings.phoneMessageAutoRead" />
-                  手机消息自动朗读（仅 NPC 文本回复）
-                </label>
-                <div class="hint">仅朗读 sender=contact 且 type=text 的手机消息。</div>
-              </div>
-
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" v-model="settings.baibaiPhoneMessageAutoRead" />
-                  柏柏小手机自动朗读（仅 NPC 文本回复）
-                </label>
-                <div class="hint">仅朗读 qq.private / qq.group 中的 NPC 文本消息。</div>
-              </div>
-
-              <div class="form-group">
-                <label>默认音色</label>
+                <label>试听</label>
                 <div class="input-with-btn">
-                  <select v-model="settings.ttsDefaultSpeaker">
-                    <option value="">（不指定）</option>
-                    <option v-for="v in ttsVoiceList" :key="v.name" :value="v.name">
-                      {{ v.name }}{{ v.desc ? ' (' + v.desc + ')' : '' }}
-                    </option>
-                  </select>
-                  <button class="input-btn" type="button" @click="refreshTtsVoices" :disabled="refreshingTtsVoices">
-                    {{ refreshingTtsVoices ? '刷新中...' : '刷新音色' }}
-                  </button>
+                  <input v-model="ttsTestText" type="text" placeholder="试听文本" />
+                  <button class="btn btn-test" type="button" @click="testTts">播放</button>
+                  <button class="btn btn-secondary" type="button" @click="stopTts">停止</button>
                 </div>
-                <div class="hint">{{ ttsVoiceHint }}</div>
+                <div class="hint">{{ ttsTestHint || '用 Tavern 当前选中的配音渠道念一句。' }}</div>
               </div>
 
               <div class="advanced-toggle" @click="showLipSyncAdvanced = !showLipSyncAdvanced">
@@ -625,90 +593,6 @@
                   ></textarea>
                   <div class="hint">保存时会自动去重、去空白。</div>
                 </div>
-              </div>
-
-              <div v-if="settings.ttsProvider === TTS_PROVIDER.GPT_SOVITS_V2" class="advanced-params">
-                <div class="form-group">
-                  <label>API 地址</label>
-                  <input type="text" v-model="settings.gptSoVits.apiUrl" placeholder="http://127.0.0.1:9880" />
-                </div>
-
-                <div class="form-group">
-                  <label>模型总目录 / 路径前缀</label>
-                  <input
-                    type="text"
-                    v-model="settings.gptSoVits.importPathPrefix"
-                    placeholder="D:/模型总目录"
-                    @change="onGptImportPrefixChange"
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label>
-                    <input type="checkbox" v-model="settings.gptSoVits.useCorsProxy" />
-                    使用酒馆代理（/proxy）
-                  </label>
-                  <div class="hint">局域网访问建议开启；修改 config 后需重启酒馆进程。</div>
-                </div>
-
-                <div class="form-group">
-                  <label>模型切换方式</label>
-                  <select v-model="settings.gptSoVits.modelSwitchMode" @change="onGptSwitchModeChange">
-                    <option value="set_weights">set_weights（api_v2.py）</option>
-                    <option value="set_model">set_model（api.py）</option>
-                    <option value="none">不自动切模型</option>
-                  </select>
-                </div>
-
-                <div v-if="isGptSetModelMode" class="form-group">
-                  <label>set_model endpoint</label>
-                  <input type="text" v-model="settings.gptSoVits.setModelEndpoint" placeholder="/set_model" />
-                </div>
-
-                <div class="form-group">
-                  <label>
-                    <input type="checkbox" v-model="settings.gptSoVits.strictWeightSwitch" />
-                    strictWeightSwitch（切权重失败时中断播放）
-                  </label>
-                </div>
-
-                <div class="form-group">
-                  <label>模型管理（v0.9）</label>
-                  <div class="local-model-info">{{ gptModelSummaryHint }}</div>
-                  <div class="form-row">
-                    <div class="form-group half">
-                      <button class="btn btn-secondary" type="button" @click="openGptModelManager">打开模型管理器</button>
-                    </div>
-                    <div class="form-group half">
-                      <button
-                        class="btn btn-secondary"
-                        type="button"
-                        @click="refreshTtsVoices"
-                        :disabled="refreshingTtsVoices"
-                      >
-                        {{ refreshingTtsVoices ? '刷新中...' : '刷新音色列表' }}
-                      </button>
-                    </div>
-                  </div>
-                  <div class="form-row">
-                    <div class="form-group half">
-                      <button class="btn btn-test" type="button" @click="testTts" :disabled="!ttsEnabled">试听</button>
-                    </div>
-                    <div class="form-group half">
-                      <input type="text" v-model="ttsTestText" placeholder="试听文本" />
-                    </div>
-                  </div>
-                  <div class="hint">已移除 JSON 手填入口，导入/导出/编辑请在“模型管理器”完成。</div>
-                </div>
-              </div>
-
-              <div v-else class="form-group">
-                <button class="btn btn-test" type="button" @click="testTts" :disabled="!ttsEnabled">试听</button>
-                <input type="text" v-model="ttsTestText" placeholder="试听文本" />
-              </div>
-
-              <div class="form-group">
-                <button class="btn btn-secondary" type="button" @click="stopTts">停止</button>
               </div>
             </section>
 
@@ -1117,8 +1001,6 @@ import { storeToRefs } from 'pinia';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import {
   getGptSoVitsVoiceList,
-  getTTSEnabled,
-  getTTSVoiceListAsync,
   inferGptSoVitsModelsFromFolderFiles,
   inferGptSoVitsVoicesFromFolderFiles,
   isAbsoluteFileSystemPath,
@@ -1126,11 +1008,8 @@ import {
   normalizeGptSoVitsSwitchMode,
   normalizeGptSoVitsVoicesForStore,
   pickFirstUsableGptSoVitsVoice,
-  setTTSEnabled,
-  TTS_PROVIDER,
   type GptSoVitsModelStoreConfig,
   type GptSoVitsRefAudio,
-  type TTSSpeakerVoice,
 } from '../audio/tts-config';
 import { TTSManager } from '../audio/tts-manager';
 import {
@@ -1163,7 +1042,7 @@ import { resolveLive2DExpression, resolveLive2DMotion } from '../live2d/expressi
 import { Live2DManager } from '../live2d/manager';
 import { Live2DStage } from '../live2d/stage';
 import { Live2DUploader } from '../live2d/uploader';
-import { callHost } from '../../bridge/tavern';
+import { callHost, speak, stopSpeaking } from '../../bridge/tavern';
 import ModelBrowser from './ModelBrowser.vue';
 
 const props = defineProps<{
@@ -1548,12 +1427,10 @@ function clearDiceReferenceSheets(): void {
   setDiceReferenceSelectedSheets([]);
 }
 
-const ttsEnabled = ref(getTTSEnabled());
-const ttsVoiceList = ref<TTSSpeakerVoice[]>([]);
-const refreshingTtsVoices = ref(false);
 const gptSoVitsModelsJson = ref('');
 const gptSoVitsVoicesJson = ref('');
-const ttsTestText = ref('你好，这是一段 TTS 配音测试。');
+const ttsTestText = ref('你好，我是桌宠。');
+const ttsTestHint = ref('');
 const gptModelImportJsonInputRef = ref<HTMLInputElement | null>(null);
 const gptModelImportFolderInputRef = ref<HTMLInputElement | null>(null);
 const gptImportJsonInputRef = ref<HTMLInputElement | null>(null);
@@ -1572,16 +1449,6 @@ const isGptSetModelMode = computed(
   () => normalizeGptSoVitsSwitchMode(settings.value.gptSoVits?.modelSwitchMode) === 'set_model',
 );
 
-const ttsVoiceHint = computed(() => {
-  const providerHint =
-    settings.value.ttsProvider === TTS_PROVIDER.GPT_SOVITS_V2
-      ? 'GPT-SoVITS：建议把音色 name 设为角色名。'
-      : settings.value.ttsProvider === TTS_PROVIDER.EDGE_TTS_DIRECT
-        ? 'EdgeTTS（直连）：前端直连，不需要插件；失败时可切换 Edge 浏览器复测。'
-        : 'LittleWhiteBox：未指定/未绑定时使用此默认音色。';
-  const emptyHint = ttsVoiceList.value.length === 0 ? '（当前音色列表为空）' : '';
-  return `${providerHint}${emptyHint}`;
-});
 
 const gptModelSummaryHint = computed(() => {
   const models = Array.isArray(settings.value.gptSoVits?.models) ? settings.value.gptSoVits.models : [];
@@ -2972,28 +2839,6 @@ async function previewEmotion(tag: EmotionTag): Promise<void> {
   }
 }
 
-function onToggleTtsEnabled() {
-  setTTSEnabled(ttsEnabled.value);
-  if (!ttsEnabled.value) {
-    try {
-      TTSManager.stop();
-    } catch {
-      // ignore
-    }
-  }
-}
-
-async function refreshTtsVoices() {
-  refreshingTtsVoices.value = true;
-  try {
-    ttsVoiceList.value = await getTTSVoiceListAsync();
-  } catch (e) {
-    console.warn(`[${SCRIPT_NAME}] 获取 TTS 音色列表失败:`, e);
-    ttsVoiceList.value = [];
-  } finally {
-    refreshingTtsVoices.value = false;
-  }
-}
 
 function normalizePathSepLocal(input: unknown): string {
   return String(input || '').replace(/\\/g, '/').trim();
@@ -3251,8 +3096,6 @@ async function applyGptModelManagerModelsToSettings(showSuccessMessage = ''): Pr
   if (!settings.value.ttsDefaultSpeaker && firstUsable?.name) {
     settings.value.ttsDefaultSpeaker = firstUsable.name;
   }
-
-  await refreshTtsVoices();
   if (showSuccessMessage) {
     toastr.success(showSuccessMessage);
   }
@@ -3644,7 +3487,6 @@ async function onGptModelImportJsonChange(event: Event): Promise<void> {
     setGptSoVitsModelsTextarea(merged);
     setGptSoVitsVoicesTextarea(legacyVoices);
     syncGptModelManagerFromSettings();
-    await refreshTtsVoices();
 
     toastr.success(`已导入模型：${normalizedIncoming.length} 条`);
   } catch (e) {
@@ -3687,7 +3529,6 @@ async function onGptModelImportFolderChange(event: Event): Promise<void> {
     setGptSoVitsModelsTextarea(merged);
     setGptSoVitsVoicesTextarea(legacyVoices);
     syncGptModelManagerFromSettings();
-    await refreshTtsVoices();
 
     const hasRelativePath = inferred.some(model => {
       const p = String(model?.paths?.defaultRefAudioPath || '').trim();
@@ -3728,7 +3569,6 @@ async function onGptImportJsonChange(event: Event): Promise<void> {
     setGptSoVitsModelsTextarea([]);
     setGptSoVitsVoicesTextarea(merged);
     syncGptModelManagerFromSettings();
-    await refreshTtsVoices();
 
     let msg = `已导入音色：${normalizedIncoming.voices.length} 条`;
     if (normalizedIncoming.ignoredCount > 0) msg += `，忽略无效 ${normalizedIncoming.ignoredCount} 条`;
@@ -3773,7 +3613,6 @@ async function onGptImportFolderChange(event: Event): Promise<void> {
     setGptSoVitsModelsTextarea([]);
     setGptSoVitsVoicesTextarea(merged);
     syncGptModelManagerFromSettings();
-    await refreshTtsVoices();
 
     const hasRelativePath = normalizedIncoming.voices.some(v => !isAbsoluteFileSystemPath(v.refAudioPath || ''));
     let msg = `已从文件夹导入：${normalizedIncoming.voices.length} 条`;
@@ -3835,7 +3674,6 @@ async function addGptSoVitsModelTemplate(): Promise<void> {
     setGptSoVitsModelsTextarea(merged);
     setGptSoVitsVoicesTextarea(legacyVoices);
     syncGptModelManagerFromSettings();
-    await refreshTtsVoices();
     toastr.success('已添加一条模型模板');
   } catch (e) {
     console.warn(`[${SCRIPT_NAME}] GPT-SoVITS 添加模型模板失败:`, e);
@@ -3870,7 +3708,6 @@ function saveGptSoVitsModels(): void {
     settings.value.ttsDefaultSpeaker = firstUsable.name;
   }
 
-  void refreshTtsVoices();
   toastr.success(`GPT-SoVITS 模型列表已保存：${normalized.length} 条`);
 }
 
@@ -3896,7 +3733,6 @@ async function addGptSoVitsVoiceTemplate(): Promise<void> {
     setGptSoVitsModelsTextarea([]);
     setGptSoVitsVoicesTextarea(merged);
     syncGptModelManagerFromSettings();
-    await refreshTtsVoices();
     toastr.success('已添加一条音色模板');
   } catch (e) {
     console.warn(`[${SCRIPT_NAME}] GPT-SoVITS 添加模板失败:`, e);
@@ -3929,7 +3765,6 @@ function saveGptSoVitsVoices(): void {
     settings.value.ttsDefaultSpeaker = firstUsable.name;
   }
 
-  void refreshTtsVoices();
 
   let msg = `GPT-SoVITS 音色列表已保存：${normalized.voices.length} 条`;
   if (normalized.ignoredCount > 0) msg += `（忽略无效条目 ${normalized.ignoredCount} 条）`;
@@ -3949,58 +3784,23 @@ function getCurrentCharacterId(): string {
   return 'default';
 }
 
+/** 试听：直接用 Tavern 当前选中的配音渠道念一句，不再经过上游那三个 TTS 引擎。 */
 async function testTts(): Promise<void> {
-  if (!ttsEnabled.value) return;
-  const text = String(ttsTestText.value || '').trim() || '你好，这是一段 TTS 配音测试。';
-  const speaker = getCurrentCharacterId();
-  let voiceName = String(settings.value.ttsDefaultSpeaker || '').trim();
-
-  if (settings.value.ttsProvider === TTS_PROVIDER.GPT_SOVITS_V2) {
-    const voices = getGptSoVitsVoiceList();
-    const selected = voices.find(v => v.name === voiceName) || null;
-    const selectedUsable = !!String(selected?.gptSoVits?.refAudioPath || '').trim();
-    const fallback = pickFirstUsableGptSoVitsVoice(voices);
-    const target = selectedUsable ? selected : fallback;
-    const targetName = String(target?.name || '').trim();
-
-    if (!targetName) {
-      toastr.error('请先配置至少一个可用音色（refAudioPath 不能为空）');
-      return;
-    }
-
-    if (voiceName !== targetName) {
-      settings.value.ttsDefaultSpeaker = targetName;
-      voiceName = targetName;
-      toastr.info(`已自动切换试听音色为：${targetName}`);
-    }
-  } else if (settings.value.ttsProvider === TTS_PROVIDER.EDGE_TTS_DIRECT && !voiceName) {
-    const voices = ttsVoiceList.value.length > 0 ? ttsVoiceList.value : await getTTSVoiceListAsync();
-    const fallbackName = String(voices[0]?.name || voices[0]?.value || '').trim();
-    if (!fallbackName) {
-      toastr.error('当前无可用 EdgeTTS 音色，请先刷新音色列表');
-      return;
-    }
-    settings.value.ttsDefaultSpeaker = fallbackName;
-    voiceName = fallbackName;
-  }
-
+  const body = String(ttsTestText.value || '').trim() || '你好，我是桌宠。';
+  ttsTestHint.value = '合成中…';
   try {
-    TTSManager.stop();
-    await TTSManager.speak(
-      { type: 'dialogue', speaker, text, tts: voiceName ? { speaker: voiceName } : undefined },
-      `desktop_pet_tts_test_${Date.now()}`,
-    );
+    // 不指定 speaker：桌宠的吐槽是它自己在说话，不是卡里某个角色的台词，
+    // 让 Tavern 用默认声音；指定了反而会去角色素材里找一个不存在的人。
+    const ok = await speak(body);
+    ttsTestHint.value = ok ? '已交给 Tavern 播放。听不到声音的话，检查「设置 → DSH Tavern → 显示与交互 → 配音」里的渠道。' : '这一局没有可用的配音渠道，或朗读被关掉了。';
   } catch (e) {
-    console.warn(`[${SCRIPT_NAME}] TTS 试听失败:`, e);
+    ttsTestHint.value = `试听失败：${e instanceof Error ? e.message : String(e)}`;
   }
 }
 
 function stopTts(): void {
-  try {
-    TTSManager.stop();
-  } catch {
-    // ignore
-  }
+  stopSpeaking();
+  ttsTestHint.value = '';
 }
 
 function applyLipSyncManualParams(): void {
@@ -4033,7 +3833,6 @@ watch(
     if (!sectionTabs.some((tab) => tab.key === activeSection.value)) activeSection.value = 'live2d';
     customModelUrl.value = settings.value.modelPath || '';
     showEmotionAdvanced.value = false;
-    ttsEnabled.value = getTTSEnabled();
     localModelStatus.value = '';
     localModelError.value = '';
     lipSyncManualParamsText.value = Array.isArray(settings.value.lipSyncManualParamIds)
@@ -4064,7 +3863,6 @@ watch(
       gptSoVitsVoicesJson.value = '[]';
     }
     syncGptModelManagerFromSettings();
-    void refreshTtsVoices();
     refreshDiceReferenceSheetOptions();
     void refreshLocalModelInfo();
     if (settings.value.apiMode !== 'custom') {
@@ -4097,7 +3895,6 @@ watch(
     } catch {
       // ignore
     }
-    void refreshTtsVoices();
   },
 );
 
@@ -4358,6 +4155,17 @@ watch(
   color: theme.$ark-danger !important;
 }
 
+/* 说明块：告诉玩家这件事现在由谁负责（例如朗读渠道归 Tavern 管）。 */
+.notice-box {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: theme.$ark-text-sub;
+  border-left: 2px solid theme.$ark-accent-cyan;
+  background: rgba(0, 218, 194, 0.06);
+}
+
 .form-row {
   display: flex;
   gap: 12px;
@@ -4394,12 +4202,13 @@ watch(
 
 .input-with-btn {
   display: grid;
-  grid-template-columns: 1fr auto;
+  /* 输入框 + 两个按钮（如「播放 / 停止」）；只放一个按钮时第三个单元格自然空着也不挤。 */
+  grid-template-columns: 1fr auto auto;
   gap: 8px;
   align-items: stretch;
 
-  .input-btn {
-    @include theme.ark-button-base;
+  .input-btn,
+  .btn {
     min-width: 84px;
     padding: 0 12px;
     font-size: 11px;

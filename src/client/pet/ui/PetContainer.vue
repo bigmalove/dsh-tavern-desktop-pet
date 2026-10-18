@@ -1292,15 +1292,14 @@ async function initPet() {
     const s = settings.value;
 
     try {
+      // 朗读已改走 Tavern 的 speak（bridge/tavern.js），上游那三个 TTS 引擎不再初始化：
+      // 它的 init 会去找 xiaobaixTts 之类的全局对象，找不到就打印「将禁用TTS」，纯噪音。
       setLipSyncRefs({
         getProxiedAudioUrl: (url: string) => TTSManager._getProxiedAudioUrl(url),
       });
-      TTSManager.init();
     } catch (e) {
-      logError('TTS 模块初始化失败（不影响模型显示）', e);
+      logError('口型同步模块初始化失败（不影响模型显示）', e);
     }
-    bindPhoneTTSBridge();
-    bindBaibaiPhoneTTSBridge();
 
     Commentator.setCallback((text: string, isDone: boolean) => {
       const parsed = parseEmotionCotText(text, {
