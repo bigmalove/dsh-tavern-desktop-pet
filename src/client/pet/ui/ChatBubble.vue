@@ -104,7 +104,9 @@ function updateBubblePosition(): void {
       const fallbackY = rect.top + rect.height * 0.22;
       const rawLeft = anchor?.x ?? fallbackX;
       const rawTop = (anchor?.y ?? fallbackY) - BUBBLE_GAP;
-      const safeLeft = Math.max(EDGE_PADDING, Math.min(rawLeft, Math.max(EDGE_PADDING, vw - EDGE_PADDING)));
+      // 气泡有固定宽度，左右各留半宽，避免贴边被裁掉。
+      const halfBubble = Math.min(160, Math.max(40, (vw - 32) / 2));
+      const safeLeft = Math.max(halfBubble + EDGE_PADDING, Math.min(rawLeft, Math.max(halfBubble + EDGE_PADDING, vw - halfBubble - EDGE_PADDING)));
       const safeTop = Math.max(MIN_BUBBLE_TOP, Math.min(rawTop, Math.max(MIN_BUBBLE_TOP, vh - EDGE_PADDING)));
 
       bubbleStyle.value = {
@@ -239,8 +241,8 @@ onUnmounted(() => {
 .chat-bubble {
   position: fixed;
   transform: translate(-50%, -100%);
-  max-width: 320px;
-  min-width: 80px;
+  /* 定死宽度：父节点是零尺寸的浮层根，shrink-to-fit 会把气泡压成 min-width 一条竖线。 */
+  width: min(320px, calc(100vw - 32px));
   animation: bubble-in 0.22s ease-out;
   z-index: 1300;
   pointer-events: none;
