@@ -61,11 +61,15 @@ function ensureRootStyle() {
 function PetPanel(ctx) {
   return function PetPanelView() {
     const [status, setStatus] = React.useState(() => petActions.describe())
+    const [visible, setVisible] = React.useState(() => petActions.isVisible())
     const [catalog, setCatalog] = React.useState(null)
     const [choice, setChoice] = React.useState(() => petActions.commentModel() || { provider: '', model: '' })
 
     React.useEffect(() => {
-      const timer = setInterval(() => setStatus(petActions.describe()), 1500)
+      const timer = setInterval(() => {
+        setStatus(petActions.describe())
+        setVisible(petActions.isVisible())
+      }, 1500)
       return () => clearInterval(timer)
     }, [])
 
@@ -109,6 +113,14 @@ function PetPanel(ctx) {
         { className: 'pet-panel-row' },
         React.createElement('button', { type: 'button', onClick: () => openPetSettings() }, '打开设置'),
         React.createElement('button', { type: 'button', onClick: () => teasePet() }, '逗一下'),
+        React.createElement(
+          'button',
+          {
+            type: 'button',
+            onClick: () => (visible ? petActions.hide?.() : petActions.show?.()),
+          },
+          visible ? '隐藏桌宠' : '显示桌宠',
+        ),
       ),
       React.createElement(
         'label',

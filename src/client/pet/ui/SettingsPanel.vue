@@ -63,6 +63,14 @@
               </h4>
 
               <div class="form-group">
+                <label>
+                  <input type="checkbox" v-model="settings.petVisible" />
+                  显示桌宠
+                </label>
+                <div class="hint">取消勾选等同于长按菜单里的 CLOSE，会一直记住；重新勾上会立刻加载模型。</div>
+              </div>
+
+              <div class="form-group">
                 <label>模型路径</label>
                 <div class="input-with-btn">
                   <input

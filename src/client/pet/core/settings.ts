@@ -73,6 +73,10 @@ const SettingsSchema = z
       })
       .default({}),
 
+    // 桌宠显示开关：长按菜单的 CLOSE 与设置里的「显示桌宠」共用。
+    // 关掉后刷新不再自动挂出来，必须显式打开。
+    petVisible: z.boolean().default(true),
+
     // Live2D 配置
     modelPath: z.string().default(DEFAULTS.MODEL_PATH),
     useCdn: z.boolean().default(true),

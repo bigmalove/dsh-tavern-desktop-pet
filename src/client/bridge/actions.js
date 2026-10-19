@@ -6,6 +6,9 @@
 export const petActions = {
   openSettings: null,
   closeSettings: null,
+  show: null,
+  hide: null,
+  isVisible: () => false,
   tease: null,
   reloadModel: null,
   isReady: () => false,
@@ -21,6 +24,9 @@ export function providePetActions(actions) {
 export function clearPetActions() {
   petActions.openSettings = null
   petActions.closeSettings = null
+  petActions.show = null
+  petActions.hide = null
+  petActions.isVisible = () => false
   petActions.tease = null
   petActions.reloadModel = null
   petActions.isReady = () => false

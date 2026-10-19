@@ -148,10 +148,29 @@ function applyEmotionToLive2D(tag: EmotionTag): boolean {
 watch(showSettings, (visible) => {
   log(visible ? '设置面板已显示' : '设置面板已关闭');
   if (!visible || !petClosed) return;
+  // 用户主动 CLOSE 的不能在这里复活，否则「关闭」就形同虚设；
+  // 只有意外销毁（比如舞台被外力清掉，但开关还是打开状态）才补回来。
+  if (settings.value.petVisible === false) return;
   log('设置面板打开时检测到宠物已关闭，开始重新加载模型');
   syncGazeFollowBinding();
   void initPet();
 });
+
+// 设置页的「显示桌宠」复选框与长按菜单的 CLOSE 共用这一个开关。
+watch(
+  () => settings.value.petVisible,
+  (visible) => {
+    if (visible === false) {
+      if (!petClosed) closePet(false);
+      return;
+    }
+    if (petClosed) {
+      log('检测到「显示桌宠」已打开，重新初始化');
+      syncGazeFollowBinding();
+      void initPet();
+    }
+  },
+);
 
 function registerGlobalOpenSettings(): void {
   try {
@@ -258,9 +277,11 @@ function onManualChat(message: string): void {
   void Commentator.chat(message);
 }
 
-function closePet(): void {
+function closePet(closeSettingsPanel = true): void {
   if (petClosed) return;
   petClosed = true;
+  // 关掉这件事要记住：只销毁实例的话，刷新后 onMounted 又会把桌宠挂回来。
+  settings.value.petVisible = false;
   initTaskId++;
   modelLoadTaskId++;
   clearModelLoadingHideTimer();
@@ -269,7 +290,8 @@ function closePet(): void {
 
   showMenu.value = false;
   showModelBrowser.value = false;
-  uiStore.closeSettings();
+  // 在设置面板里取消勾选「显示桌宠」时不要把面板一起收掉，否则改到一半就没了。
+  if (closeSettingsPanel) uiStore.closeSettings();
   onBubbleHidden();
   unbindGlobalGazeFollow(true);
 
@@ -284,6 +306,16 @@ function closePet(): void {
   } catch {
     // ignore
   }
+}
+
+/** 关掉之后重新挂出来：先翻状态，避免 petVisible 的 watch 回调再初始化一遍。 */
+function showPet(): void {
+  if (!petClosed) return;
+  petClosed = false;
+  settings.value.petVisible = true;
+  log('重新打开桌宠');
+  syncGazeFollowBinding();
+  void initPet();
 }
 
 function getStageSize(scale: number): { width: number; height: number } {
@@ -403,6 +435,7 @@ function syncGazeFollowBinding(): void {
 }
 
 function syncStageAfterViewportResize(reason: string): void {
+  if (petClosed) return;
   if (Live2DStage.isPreviewMounted()) return;
 
   const stageSize = getStageSize(settings.value.petScale);
@@ -826,15 +859,25 @@ watch(
 );
 
 onMounted(() => {
-  petClosed = false;
   bindViewportResizeRecovery();
-  syncGazeFollowBinding();
   // 侧栏面板和输入框按钮通过这组函数指针操作桌宠（React 侧碰不到 Vue 实例）。
   providePetActions({
     openSettings: () => uiStore.openSettings(),
     closeSettings: () => uiStore.closeSettings(),
+    show: () => showPet(),
+    hide: () => closePet(),
+    isVisible: () => !petClosed,
     tease: () => {
-      if (petClosed) return false;
+      if (petClosed) {
+        // 关掉之后点「逗一下」：先把它叫回来。这一下没有模型可逗，所以不计为失败。
+        showPet();
+        try {
+          toastr.info('桌宠已重新打开');
+        } catch {
+          // ignore
+        }
+        return true;
+      }
       ChatMonitor.manualTrigger();
       Live2DManager.playRandomAnimation();
       return true;
@@ -846,7 +889,7 @@ onMounted(() => {
     },
     isReady: () => !petClosed && Boolean(Live2DManager.model),
     describe: () => {
-      if (petClosed) return '桌宠已关闭';
+      if (petClosed) return '桌宠已关闭（在设置 → Live2D 里勾「显示桌宠」可恢复）';
       const pieces = [];
       pieces.push(settings.value.modelPath ? `模型：${settings.value.modelPath}` : '尚未选择模型');
       pieces.push(`大小：${Math.round(normalizePetScale(settings.value.petScale) * 100)}%`);
@@ -864,6 +907,16 @@ onMounted(() => {
       settings.value.commentModelModel = String(next?.model || '');
     },
   });
+
+  // 上次是用户主动 CLOSE 的：这次只在页面里留个空挂载点，不再加载模型。
+  if (settings.value.petVisible === false) {
+    petClosed = true;
+    log('桌宠上次被关闭，本次不自动启动');
+    return;
+  }
+
+  petClosed = false;
+  syncGazeFollowBinding();
   initPet();
 });
 
