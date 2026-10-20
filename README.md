@@ -34,7 +34,13 @@
 
 Tavern 的插件就是「一个文件夹放进数据目录的 `plugins/`」——加载器读 `package.json` 的 `exports["."]`（宿主侧）与 `dsh.client` + `exports["./client"]`（浏览器侧），然后自己在 `cordis.patch.yml` 里补入口。所以这里不需要打包分发，克隆下来就是可用的插件。
 
-**方式一：克隆后复制（推荐）**
+**方式一：Tavern 里一键安装（推荐）**
+
+在 Tavern 的插件页粘贴仓库地址 `https://github.com/bigmalove/dsh-tavern-desktop-pet`，点安装即可，装完刷新页面。
+
+四个 npm 依赖（Vue / Pinia / zod / klona）在构建时就被 vite 打进 `client.js`，宿主侧 `index.mjs` 也没有任何外部 import，所以**装好就能用，不需要 `npm install`**。`package.json` 里**故意不写 `dependencies`**：Tavern 的一键安装看到非空的 `dependencies` 会直接拒绝（提示「这个插件依赖 npm 包…」），而仓库里并不带 `node_modules/`。重新构建用的依赖都放在 `devDependencies`，别挪回去。
+
+**方式二：克隆后复制**
 
 ```sh
 git clone https://github.com/bigmalove/dsh-tavern-desktop-pet.git
@@ -48,7 +54,7 @@ git clone https://github.com/bigmalove/dsh-tavern-desktop-pet.git
 Copy-Item -Recurse dsh-tavern-desktop-pet "$HOME\.dsh-tavern\profile-data\tavern\data\plugins\"
 ```
 
-**方式二：用仓库里的安装脚本**
+**方式三：用仓库里的安装脚本**
 
 ```sh
 node install.mjs                        # 装到 ~/.dsh-tavern/...
@@ -68,13 +74,15 @@ DSH_HOME=/path/to/dsh node install.mjs  # 装到别的 DSH
 ## 开发
 
 ```sh
-npm install     # vite / vue / sass 等构建依赖
+npm install     # vite / vue / sass 等构建依赖（都在 devDependencies）
 npm run build   # 重新生成根目录的 client.js 与 index.mjs
 npm run deploy  # 构建 + 装进 ~/.dsh-tavern（开发时用）
 npm test        # 打包约束 + 模板引用检查
 ```
 
 改 `src/client/**` 后重跑 `npm run deploy`，刷新页面即是新代码；改 `src/host/**` 需要重启 Tavern。
+
+> Vue / Pinia / zod / klona 只在构建时用，产物里已经内联，所以它们属于 `devDependencies`。`package.json` 里没有 `dependencies` 是给一键安装用的约定，别加回去（`tests/packaging.test.mjs` 会拦）。
 
 ## 目录
 

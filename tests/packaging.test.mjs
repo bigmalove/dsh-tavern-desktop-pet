@@ -90,6 +90,24 @@ test('宿主侧只走 Tavern 的公开接口', async () => {
   assert.doesNotMatch(code, /^import .* from '(?!\.)/m, '宿主侧不应 import 外部包')
 })
 
+test('清单里没有运行时 npm 依赖：dependencies 必须为空', async () => {
+  const pkg = JSON.parse(await read('package.json'))
+  // Tavern 的一键安装（tavern-plugin/lib/domain/user-plugin-install.js）看到非空
+  // dependencies、压缩包里又没有 node_modules/，就会直接拒绝：「这个插件依赖 npm 包…」。
+  // 本插件的 Vue / Pinia / zod / klona 都在构建时被 vite 打进 client.js，宿主侧也不
+  // import 任何外部包，所以它们只是构建依赖。写回 dependencies 会让一键安装重新坏掉。
+  assert.deepEqual(Object.keys(pkg.dependencies || {}), [], 'dependencies 非空会挡住 Tavern 一键安装')
+  for (const name of ['vue', 'pinia', 'zod', 'klona']) {
+    assert.ok(pkg.devDependencies?.[name], name + ' 是构建依赖，应放在 devDependencies')
+  }
+
+  // 光移位置不够：产物里也不能留下这几个包的运行时 require，否则装到 plugins/ 后照样加载失败。
+  const code = await read('client.js')
+  for (const name of ['vue', 'pinia', 'zod', 'klona']) {
+    assert.equal(code.includes(`require("${name}")`), false, name + ' 必须内联进 bundle，不能留运行时 require')
+  }
+})
+
 test('install.mjs 只复制插件文件，不碰 Tavern 内部', async () => {
   const code = await read('install.mjs')
   assert.ok(code.includes('profile-data'), '要落到 profile-data/tavern/data/plugins')
