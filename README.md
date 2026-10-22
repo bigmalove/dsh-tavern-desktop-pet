@@ -59,17 +59,21 @@
 
 两件事都不改变游戏内容，只影响桌宠自己的表情和是否开口。
 
-## 默认形象
+## 内置形象
 
-插件自带一个 Live2D 模型「大肥鱼」（Cubism 4，含 23 组动作、15 个表情），放在
-`assets/live2d/dafeiyu/`，首次加载会自动设为默认形象；之前用 CDN shizuku 的旧默认值
-会自动迁过来，自己挑过模型的不会被改动。
+插件自带三套大肥鱼 Live2D 模型（Cubism 4，每套 23 组动作、15 个表情）：女仆装（默认）、
+Claude 装、铁盆装，分别放在 `assets/live2d/dafeiyu/`、`assets/live2d/dafeiyu-claude/`、
+`assets/live2d/dafeiyu-basin/`。三套都随插件分发、离线可用；打开设置 → Live2D →
+「内置 / 推荐模型」点一下即可切换，刷新后保持选择。
 
-模型来自 [`jerryzmtz/dsh-tavern-galgame`](https://github.com/jerryzmtz/dsh-tavern-galgame)
-的 `alpha-r12` 发行附件，角色与素材署名见
-[`assets/live2d/dafeiyu/NOTICE.md`](assets/live2d/dafeiyu/NOTICE.md)：大肥鱼（鲸鱼娘
-DeepSeek 同人），原作 上善无形，女仆二次设计 ZipZipPipe，衍生素材 kousakayou，
-按 CC BY-NC-SA 4.0 非商业分享。
+首次加载默认用女仆装；之前用 CDN shizuku 的旧默认值会自动迁过来，自己挑过模型的不会被
+改动。换端口 / 插件目录后，已选内置形象的旧地址会自动迁到新地址。
+
+三套模型来自 [`jerryzmtz/dsh-tavern-galgame`](https://github.com/jerryzmtz/dsh-tavern-galgame)
+的 `alpha-r12` 发行附件 `dafeiyu.zip`，角色与素材署名见
+[`assets/live2d/dafeiyu/NOTICE.md`](assets/live2d/dafeiyu/NOTICE.md)（两个变体目录下也有
+各自的 NOTICE）：大肥鱼（鲸鱼娘 DeepSeek 同人），原作 上善无形，女仆二次设计 ZipZipPipe，
+衍生素材 kousakayou，按 CC BY-NC-SA 4.0 非商业分享。
 
 ## 安装
 

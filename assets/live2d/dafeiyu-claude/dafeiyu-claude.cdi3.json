@@ -1,0 +1,926 @@
+{
+	"Version": 3,
+	"Parameters": [
+		{
+			"Id": "ParamSwingFinR",
+			"GroupId": "",
+			"Name": "fin R"
+		},
+		{
+			"Id": "ParamSwingFinL",
+			"GroupId": "",
+			"Name": "fin L"
+		},
+		{
+			"Id": "ParamArmPoseSwitch",
+			"GroupId": "",
+			"Name": "arm pose"
+		},
+		{
+			"Id": "ParamAngleX",
+			"GroupId": "ParamGroupFace",
+			"Name": "Angle X"
+		},
+		{
+			"Id": "ParamAngleY",
+			"GroupId": "ParamGroupFace",
+			"Name": "Angle Y"
+		},
+		{
+			"Id": "ParamAngleZ",
+			"GroupId": "ParamGroupFace",
+			"Name": "Angle Z"
+		},
+		{
+			"Id": "ParamEyeLOpen",
+			"GroupId": "ParamGroupEyes",
+			"Name": "Left Eye Open"
+		},
+		{
+			"Id": "ParamEyeROpen",
+			"GroupId": "ParamGroupEyes",
+			"Name": "Right Eye Open"
+		},
+		{
+			"Id": "ParamEyeBallX",
+			"GroupId": "ParamGroupEyes",
+			"Name": "EyeBall X"
+		},
+		{
+			"Id": "ParamEyeBallY",
+			"GroupId": "ParamGroupEyes",
+			"Name": "EyeBall Y"
+		},
+		{
+			"Id": "ParamEyeBallForm",
+			"GroupId": "ParamGroupEyes",
+			"Name": "Eye Jelly"
+		},
+		{
+			"Id": "ParamBrowLY",
+			"GroupId": "ParamGroupBrows",
+			"Name": "Left Brow Y"
+		},
+		{
+			"Id": "ParamBrowRY",
+			"GroupId": "ParamGroupBrows",
+			"Name": "Right Brow Y"
+		},
+		{
+			"Id": "ParamMouthForm",
+			"GroupId": "ParamGroupMouth",
+			"Name": "Mouth Form"
+		},
+		{
+			"Id": "ParamMouthOpenY",
+			"GroupId": "ParamGroupMouth",
+			"Name": "Mouth Open"
+		},
+		{
+			"Id": "ParamBodyAngleX",
+			"GroupId": "ParamGroupBody",
+			"Name": "Body Angle X"
+		},
+		{
+			"Id": "ParamBodyAngleY",
+			"GroupId": "ParamGroupBody",
+			"Name": "Body Angle Y"
+		},
+		{
+			"Id": "ParamBodyAngleZ",
+			"GroupId": "ParamGroupBody",
+			"Name": "Body Angle Z"
+		},
+		{
+			"Id": "ParamBodyLean",
+			"GroupId": "ParamGroupBody",
+			"Name": "Body Lean"
+		},
+		{
+			"Id": "ParamProportion",
+			"GroupId": "ParamGroupBody",
+			"Name": "Proportion (Chibi)"
+		},
+		{
+			"Id": "ParamBreath",
+			"GroupId": "ParamGroupBody",
+			"Name": "Breath"
+		},
+		{
+			"Id": "ParamHairFront",
+			"GroupId": "ParamGroupPhysics",
+			"Name": "Front Hair Sway"
+		},
+		{
+			"Id": "ParamHairBack",
+			"GroupId": "ParamGroupPhysics",
+			"Name": "Back Hair Sway"
+		},
+		{
+			"Id": "ParamAngerExp",
+			"GroupId": "ParamGroupCustom",
+			"Name": "ParamAngerExp"
+		},
+		{
+			"Id": "ParamAnxiousExp",
+			"GroupId": "ParamGroupCustom",
+			"Name": "ParamAnxiousExp"
+		},
+		{
+			"Id": "ParamCrashedExp",
+			"GroupId": "ParamGroupCustom",
+			"Name": "ParamCrashedExp"
+		},
+		{
+			"Id": "ParamCryingExp",
+			"GroupId": "ParamGroupCustom",
+			"Name": "ParamCryingExp"
+		},
+		{
+			"Id": "ParamDisgustExp",
+			"GroupId": "ParamGroupCustom",
+			"Name": "ParamDisgustExp"
+		},
+		{
+			"Id": "ParamDroolingExp",
+			"GroupId": "ParamGroupCustom",
+			"Name": "ParamDroolingExp"
+		},
+		{
+			"Id": "ParamEatingExp",
+			"GroupId": "ParamGroupCustom",
+			"Name": "ParamEatingExp"
+		},
+		{
+			"Id": "ParamJoyExp",
+			"GroupId": "ParamGroupCustom",
+			"Name": "ParamJoyExp"
+		},
+		{
+			"Id": "ParamLoveExp",
+			"GroupId": "ParamGroupCustom",
+			"Name": "ParamLoveExp"
+		},
+		{
+			"Id": "ParamSadExp",
+			"GroupId": "ParamGroupCustom",
+			"Name": "ParamSadExp"
+		},
+		{
+			"Id": "ParamShyExp",
+			"GroupId": "ParamGroupCustom",
+			"Name": "ParamShyExp"
+		},
+		{
+			"Id": "ParamSingingExp",
+			"GroupId": "ParamGroupCustom",
+			"Name": "ParamSingingExp"
+		},
+		{
+			"Id": "ParamSmugExp",
+			"GroupId": "ParamGroupCustom",
+			"Name": "ParamSmugExp"
+		},
+		{
+			"Id": "ParamSkelUpperBody",
+			"GroupId": "ParamGroupSkeleton",
+			"Name": "Upper body"
+		},
+		{
+			"Id": "ParamArmR",
+			"GroupId": "ParamGroupSkeleton",
+			"Name": "Right Upper arm"
+		},
+		{
+			"Id": "ParamForearmR",
+			"GroupId": "ParamGroupSkeleton",
+			"Name": "Right Forearm"
+		},
+		{
+			"Id": "ParamHandR",
+			"GroupId": "ParamGroupSkeleton",
+			"Name": "Right Hand"
+		},
+		{
+			"Id": "ParamArmL",
+			"GroupId": "ParamGroupSkeleton",
+			"Name": "Left Upper arm"
+		},
+		{
+			"Id": "ParamForearmL",
+			"GroupId": "ParamGroupSkeleton",
+			"Name": "Left Forearm"
+		},
+		{
+			"Id": "ParamHandL",
+			"GroupId": "ParamGroupSkeleton",
+			"Name": "Left Hand"
+		},
+		{
+			"Id": "ParamSkelLowerBody",
+			"GroupId": "ParamGroupSkeleton",
+			"Name": "Lower body"
+		},
+		{
+			"Id": "ParamTail1",
+			"GroupId": "ParamGroupSkeleton",
+			"Name": "Tail 1"
+		},
+		{
+			"Id": "ParamTail2",
+			"GroupId": "ParamGroupSkeleton",
+			"Name": "Tail 2"
+		},
+		{
+			"Id": "ParamTail3",
+			"GroupId": "ParamGroupSkeleton",
+			"Name": "Tail 3"
+		},
+		{
+			"Id": "ParamTail4",
+			"GroupId": "ParamGroupSkeleton",
+			"Name": "Tail 4"
+		},
+		{
+			"Id": "ParamSkelTailSwing",
+			"GroupId": "ParamGroupSkeleton",
+			"Name": "Tail Swing"
+		}
+	],
+	"ParameterGroups": [
+		{
+			"Id": "ParamGroupFace",
+			"GroupId": "",
+			"Name": "Face"
+		},
+		{
+			"Id": "ParamGroupEyes",
+			"GroupId": "",
+			"Name": "Eyes"
+		},
+		{
+			"Id": "ParamGroupBrows",
+			"GroupId": "",
+			"Name": "Brows"
+		},
+		{
+			"Id": "ParamGroupMouth",
+			"GroupId": "",
+			"Name": "Mouth"
+		},
+		{
+			"Id": "ParamGroupBody",
+			"GroupId": "",
+			"Name": "Body"
+		},
+		{
+			"Id": "ParamGroupPhysics",
+			"GroupId": "",
+			"Name": "Physics"
+		},
+		{
+			"Id": "ParamGroupCustom",
+			"GroupId": "",
+			"Name": "Custom Parameters"
+		},
+		{
+			"Id": "ParamGroupSkeleton",
+			"GroupId": "",
+			"Name": "Skeleton"
+		}
+	],
+	"Parts": [
+		{
+			"Id": "PartHead",
+			"Name": "Head"
+		},
+		{
+			"Id": "PartHairBack",
+			"Name": "Back Hair"
+		},
+		{
+			"Id": "PartFace",
+			"Name": "Face"
+		},
+		{
+			"Id": "PartHairFront",
+			"Name": "Front Hair"
+		},
+		{
+			"Id": "PartHeadAccessories",
+			"Name": "Head Accessories"
+		},
+		{
+			"Id": "PartExtra",
+			"Name": "Extra"
+		},
+		{
+			"Id": "PartBody",
+			"Name": "Body"
+		}
+	],
+	"CombinedParameters": [
+		[
+			"ParamAngleX",
+			"ParamAngleY"
+		],
+		[
+			"ParamBodyAngleX",
+			"ParamBodyAngleY"
+		],
+		[
+			"ParamEyeBallX",
+			"ParamEyeBallY"
+		]
+	],
+	"Drawables": [
+		{
+			"Id": "ArtMeshObjects",
+			"Name": "objects pose_smug"
+		},
+		{
+			"Id": "ArtMeshObjects2",
+			"Name": "objects pose_singing"
+		},
+		{
+			"Id": "ArtMeshObjects3",
+			"Name": "objects pose_shy"
+		},
+		{
+			"Id": "ArtMeshObjects4",
+			"Name": "objects pose_sad"
+		},
+		{
+			"Id": "ArtMeshObjects5",
+			"Name": "objects pose_love"
+		},
+		{
+			"Id": "ArtMeshObjects6",
+			"Name": "objects pose_eating"
+		},
+		{
+			"Id": "ArtMeshObjects7",
+			"Name": "objects pose_disgust"
+		},
+		{
+			"Id": "ArtMeshObjects8",
+			"Name": "objects pose_crying"
+		},
+		{
+			"Id": "ArtMeshObjects9",
+			"Name": "objects pose_anxious"
+		},
+		{
+			"Id": "ArtMeshObjects10",
+			"Name": "objects pose_anger"
+		},
+		{
+			"Id": "ArtMeshHeadwear",
+			"Name": "headwear"
+		},
+		{
+			"Id": "ArtMeshFaceDetail",
+			"Name": "facedetail exp_drooling_overbang"
+		},
+		{
+			"Id": "ArtMeshFaceDetail2",
+			"Name": "facedetail exp_crashed_overbang"
+		},
+		{
+			"Id": "ArtMeshFaceDetail3",
+			"Name": "facedetail exp_eating_overbang"
+		},
+		{
+			"Id": "ArtMeshFaceDetail4",
+			"Name": "facedetail exp_singing_overbang"
+		},
+		{
+			"Id": "ArtMeshFaceDetail5",
+			"Name": "facedetail exp_smug_overbang"
+		},
+		{
+			"Id": "ArtMeshFaceDetail6",
+			"Name": "facedetail exp_crying_overbang"
+		},
+		{
+			"Id": "ArtMeshFaceDetail7",
+			"Name": "facedetail exp_love_overbang"
+		},
+		{
+			"Id": "ArtMeshFaceDetail8",
+			"Name": "facedetail exp_disgust_overbang"
+		},
+		{
+			"Id": "ArtMeshFaceDetail9",
+			"Name": "facedetail exp_shy_overbang"
+		},
+		{
+			"Id": "ArtMeshFaceDetail10",
+			"Name": "facedetail exp_anxious_overbang"
+		},
+		{
+			"Id": "ArtMeshFaceDetail11",
+			"Name": "facedetail exp_sad_overbang"
+		},
+		{
+			"Id": "ArtMeshFaceDetail12",
+			"Name": "facedetail exp_anger_overbang"
+		},
+		{
+			"Id": "ArtMeshFrontHair",
+			"Name": "front hair"
+		},
+		{
+			"Id": "ArtMeshObjects11",
+			"Name": "objects pose_singing_mid"
+		},
+		{
+			"Id": "ArtMeshFaceDetail13",
+			"Name": "facedetail exp_drooling_brow"
+		},
+		{
+			"Id": "ArtMeshFaceDetail14",
+			"Name": "facedetail exp_crashed_brow"
+		},
+		{
+			"Id": "ArtMeshFaceDetail15",
+			"Name": "facedetail exp_eating_brow"
+		},
+		{
+			"Id": "ArtMeshFaceDetail16",
+			"Name": "facedetail exp_singing_brow"
+		},
+		{
+			"Id": "ArtMeshFaceDetail17",
+			"Name": "facedetail exp_smug_brow"
+		},
+		{
+			"Id": "ArtMeshFaceDetail18",
+			"Name": "facedetail exp_crying_brow"
+		},
+		{
+			"Id": "ArtMeshFaceDetail19",
+			"Name": "facedetail exp_love_brow"
+		},
+		{
+			"Id": "ArtMeshFaceDetail20",
+			"Name": "facedetail exp_disgust_brow"
+		},
+		{
+			"Id": "ArtMeshFaceDetail21",
+			"Name": "facedetail exp_shy_brow"
+		},
+		{
+			"Id": "ArtMeshFaceDetail22",
+			"Name": "facedetail exp_anxious_brow"
+		},
+		{
+			"Id": "ArtMeshFaceDetail23",
+			"Name": "facedetail exp_sad_brow"
+		},
+		{
+			"Id": "ArtMeshFaceDetail24",
+			"Name": "facedetail exp_anger_brow"
+		},
+		{
+			"Id": "ArtMeshFaceDetailR",
+			"Name": "facedetail exp_smug_eyes-r"
+		},
+		{
+			"Id": "ArtMeshFaceDetailL",
+			"Name": "facedetail exp_smug_eyes-l"
+		},
+		{
+			"Id": "ArtMeshFaceDetailR2",
+			"Name": "facedetail exp_singing_eyes-r"
+		},
+		{
+			"Id": "ArtMeshFaceDetailL2",
+			"Name": "facedetail exp_singing_eyes-l"
+		},
+		{
+			"Id": "ArtMeshFaceDetailR3",
+			"Name": "facedetail exp_shy_eyes-r"
+		},
+		{
+			"Id": "ArtMeshFaceDetailL3",
+			"Name": "facedetail exp_shy_eyes-l"
+		},
+		{
+			"Id": "ArtMeshFaceDetailR4",
+			"Name": "facedetail exp_sad_eyes-r"
+		},
+		{
+			"Id": "ArtMeshFaceDetailL4",
+			"Name": "facedetail exp_sad_eyes-l"
+		},
+		{
+			"Id": "ArtMeshFaceDetailR5",
+			"Name": "facedetail exp_love_eyes-r"
+		},
+		{
+			"Id": "ArtMeshFaceDetailL5",
+			"Name": "facedetail exp_love_eyes-l"
+		},
+		{
+			"Id": "ArtMeshFaceDetailR6",
+			"Name": "facedetail exp_joy_eyes-r"
+		},
+		{
+			"Id": "ArtMeshFaceDetailL6",
+			"Name": "facedetail exp_joy_eyes-l"
+		},
+		{
+			"Id": "ArtMeshFaceDetailR7",
+			"Name": "facedetail exp_eating_eyes-r"
+		},
+		{
+			"Id": "ArtMeshFaceDetailL7",
+			"Name": "facedetail exp_eating_eyes-l"
+		},
+		{
+			"Id": "ArtMeshFaceDetailR8",
+			"Name": "facedetail exp_drooling_eyes-r"
+		},
+		{
+			"Id": "ArtMeshFaceDetailL8",
+			"Name": "facedetail exp_drooling_eyes-l"
+		},
+		{
+			"Id": "ArtMeshFaceDetailR9",
+			"Name": "facedetail exp_disgust_eyes-r"
+		},
+		{
+			"Id": "ArtMeshFaceDetailL9",
+			"Name": "facedetail exp_disgust_eyes-l"
+		},
+		{
+			"Id": "ArtMeshFaceDetailR10",
+			"Name": "facedetail exp_crying_eyes-r"
+		},
+		{
+			"Id": "ArtMeshFaceDetailL10",
+			"Name": "facedetail exp_crying_eyes-l"
+		},
+		{
+			"Id": "ArtMeshFaceDetailR11",
+			"Name": "facedetail exp_crashed_eyes-r"
+		},
+		{
+			"Id": "ArtMeshFaceDetailL11",
+			"Name": "facedetail exp_crashed_eyes-l"
+		},
+		{
+			"Id": "ArtMeshFaceDetailR12",
+			"Name": "facedetail exp_anxious_eyes-r"
+		},
+		{
+			"Id": "ArtMeshFaceDetailL12",
+			"Name": "facedetail exp_anxious_eyes-l"
+		},
+		{
+			"Id": "ArtMeshFaceDetailR13",
+			"Name": "facedetail exp_anger_eyes-r"
+		},
+		{
+			"Id": "ArtMeshFaceDetailL13",
+			"Name": "facedetail exp_anger_eyes-l"
+		},
+		{
+			"Id": "ArtMeshEyebrow",
+			"Name": "eyebrow"
+		},
+		{
+			"Id": "ArtMeshNose",
+			"Name": "nose"
+		},
+		{
+			"Id": "ArtMeshFaceDetail25",
+			"Name": "facedetail exp_smug_mouth2"
+		},
+		{
+			"Id": "ArtMeshFaceDetail26",
+			"Name": "facedetail exp_smug_mouth1"
+		},
+		{
+			"Id": "ArtMeshFaceDetail27",
+			"Name": "facedetail exp_smug_mouth0"
+		},
+		{
+			"Id": "ArtMeshFaceDetail28",
+			"Name": "facedetail exp_singing_mouth2"
+		},
+		{
+			"Id": "ArtMeshFaceDetail29",
+			"Name": "facedetail exp_singing_mouth1"
+		},
+		{
+			"Id": "ArtMeshFaceDetail30",
+			"Name": "facedetail exp_singing_mouth0"
+		},
+		{
+			"Id": "ArtMeshFaceDetail31",
+			"Name": "facedetail exp_shy_mouth2"
+		},
+		{
+			"Id": "ArtMeshFaceDetail32",
+			"Name": "facedetail exp_shy_mouth1"
+		},
+		{
+			"Id": "ArtMeshFaceDetail33",
+			"Name": "facedetail exp_shy_mouth0"
+		},
+		{
+			"Id": "ArtMeshFaceDetail34",
+			"Name": "facedetail exp_sad_mouth2"
+		},
+		{
+			"Id": "ArtMeshFaceDetail35",
+			"Name": "facedetail exp_sad_mouth1"
+		},
+		{
+			"Id": "ArtMeshFaceDetail36",
+			"Name": "facedetail exp_sad_mouth0"
+		},
+		{
+			"Id": "ArtMeshFaceDetail37",
+			"Name": "facedetail exp_love_mouth2"
+		},
+		{
+			"Id": "ArtMeshFaceDetail38",
+			"Name": "facedetail exp_love_mouth1"
+		},
+		{
+			"Id": "ArtMeshFaceDetail39",
+			"Name": "facedetail exp_love_mouth0"
+		},
+		{
+			"Id": "ArtMeshFaceDetail40",
+			"Name": "facedetail exp_joy_mouth2"
+		},
+		{
+			"Id": "ArtMeshFaceDetail41",
+			"Name": "facedetail exp_joy_mouth1"
+		},
+		{
+			"Id": "ArtMeshFaceDetail42",
+			"Name": "facedetail exp_joy_mouth0"
+		},
+		{
+			"Id": "ArtMeshFaceDetail43",
+			"Name": "facedetail exp_eating_deco"
+		},
+		{
+			"Id": "ArtMeshFaceDetail44",
+			"Name": "facedetail exp_eating_mouth2"
+		},
+		{
+			"Id": "ArtMeshFaceDetail45",
+			"Name": "facedetail exp_eating_mouth1"
+		},
+		{
+			"Id": "ArtMeshFaceDetail46",
+			"Name": "facedetail exp_eating_mouth0"
+		},
+		{
+			"Id": "ArtMeshFaceDetail47",
+			"Name": "facedetail exp_drooling_deco"
+		},
+		{
+			"Id": "ArtMeshFaceDetail48",
+			"Name": "facedetail exp_drooling_mouth2"
+		},
+		{
+			"Id": "ArtMeshFaceDetail49",
+			"Name": "facedetail exp_drooling_mouth1"
+		},
+		{
+			"Id": "ArtMeshFaceDetail50",
+			"Name": "facedetail exp_drooling_mouth0"
+		},
+		{
+			"Id": "ArtMeshFaceDetail51",
+			"Name": "facedetail exp_disgust_mouth2"
+		},
+		{
+			"Id": "ArtMeshFaceDetail52",
+			"Name": "facedetail exp_disgust_mouth1"
+		},
+		{
+			"Id": "ArtMeshFaceDetail53",
+			"Name": "facedetail exp_disgust_mouth0"
+		},
+		{
+			"Id": "ArtMeshFaceDetail54",
+			"Name": "facedetail exp_crying_mouth2"
+		},
+		{
+			"Id": "ArtMeshFaceDetail55",
+			"Name": "facedetail exp_crying_mouth1"
+		},
+		{
+			"Id": "ArtMeshFaceDetail56",
+			"Name": "facedetail exp_crying_mouth0"
+		},
+		{
+			"Id": "ArtMeshFaceDetail57",
+			"Name": "facedetail exp_crashed_mouth2"
+		},
+		{
+			"Id": "ArtMeshFaceDetail58",
+			"Name": "facedetail exp_crashed_mouth1"
+		},
+		{
+			"Id": "ArtMeshFaceDetail59",
+			"Name": "facedetail exp_crashed_mouth0"
+		},
+		{
+			"Id": "ArtMeshFaceDetail60",
+			"Name": "facedetail exp_anxious_mouth2"
+		},
+		{
+			"Id": "ArtMeshFaceDetail61",
+			"Name": "facedetail exp_anxious_mouth1"
+		},
+		{
+			"Id": "ArtMeshFaceDetail62",
+			"Name": "facedetail exp_anxious_mouth0"
+		},
+		{
+			"Id": "ArtMeshFaceDetail63",
+			"Name": "facedetail exp_anger_mouth2"
+		},
+		{
+			"Id": "ArtMeshFaceDetail64",
+			"Name": "facedetail exp_anger_mouth1"
+		},
+		{
+			"Id": "ArtMeshFaceDetail65",
+			"Name": "facedetail exp_anger_mouth0"
+		},
+		{
+			"Id": "ArtMeshFaceDetail66",
+			"Name": "facedetail base_mouth2"
+		},
+		{
+			"Id": "ArtMeshFaceDetail67",
+			"Name": "facedetail base_mouth1"
+		},
+		{
+			"Id": "ArtMeshFaceDetail68",
+			"Name": "facedetail base_mouth0"
+		},
+		{
+			"Id": "ArtMeshFaceDetailL14",
+			"Name": "facedetail base_eyeclosed-l"
+		},
+		{
+			"Id": "ArtMeshFaceDetailR14",
+			"Name": "facedetail base_eyeclosed-r"
+		},
+		{
+			"Id": "ArtMeshFaceDetailL15",
+			"Name": "facedetail base_eyeopen-l"
+		},
+		{
+			"Id": "ArtMeshFaceDetailR15",
+			"Name": "facedetail base_eyeopen-r"
+		},
+		{
+			"Id": "ArtMeshFaceDetail69",
+			"Name": "facedetail exp_smug_face"
+		},
+		{
+			"Id": "ArtMeshFaceDetail70",
+			"Name": "facedetail exp_singing_face"
+		},
+		{
+			"Id": "ArtMeshFaceDetail71",
+			"Name": "facedetail exp_shy_face"
+		},
+		{
+			"Id": "ArtMeshFaceDetail72",
+			"Name": "facedetail exp_sad_face"
+		},
+		{
+			"Id": "ArtMeshFaceDetail73",
+			"Name": "facedetail exp_love_face"
+		},
+		{
+			"Id": "ArtMeshFaceDetail74",
+			"Name": "facedetail exp_joy_face"
+		},
+		{
+			"Id": "ArtMeshFaceDetail75",
+			"Name": "facedetail exp_eating_face"
+		},
+		{
+			"Id": "ArtMeshFaceDetail76",
+			"Name": "facedetail exp_drooling_face"
+		},
+		{
+			"Id": "ArtMeshFaceDetail77",
+			"Name": "facedetail exp_disgust_face"
+		},
+		{
+			"Id": "ArtMeshFaceDetail78",
+			"Name": "facedetail exp_crying_face"
+		},
+		{
+			"Id": "ArtMeshFaceDetail79",
+			"Name": "facedetail exp_crashed_face"
+		},
+		{
+			"Id": "ArtMeshFaceDetail80",
+			"Name": "facedetail exp_anxious_face"
+		},
+		{
+			"Id": "ArtMeshFaceDetail81",
+			"Name": "facedetail exp_anger_face"
+		},
+		{
+			"Id": "ArtMeshFace",
+			"Name": "face"
+		},
+		{
+			"Id": "ArtMeshEarsL",
+			"Name": "ears-l"
+		},
+		{
+			"Id": "ArtMeshEarsR",
+			"Name": "ears-r"
+		},
+		{
+			"Id": "ArtMeshTopwear",
+			"Name": "topwear"
+		},
+		{
+			"Id": "ArtMeshNeck",
+			"Name": "neck"
+		},
+		{
+			"Id": "ArtMeshObjects12",
+			"Name": "objects pose_smug_root"
+		},
+		{
+			"Id": "ArtMeshObjects13",
+			"Name": "objects pose_singing_root"
+		},
+		{
+			"Id": "ArtMeshObjects14",
+			"Name": "objects pose_shy_root"
+		},
+		{
+			"Id": "ArtMeshObjects15",
+			"Name": "objects pose_sad_root"
+		},
+		{
+			"Id": "ArtMeshObjects16",
+			"Name": "objects pose_love_root"
+		},
+		{
+			"Id": "ArtMeshObjects17",
+			"Name": "objects pose_eating_root"
+		},
+		{
+			"Id": "ArtMeshObjects18",
+			"Name": "objects pose_disgust_root"
+		},
+		{
+			"Id": "ArtMeshObjects19",
+			"Name": "objects pose_crying_root"
+		},
+		{
+			"Id": "ArtMeshObjects20",
+			"Name": "objects pose_anxious_root"
+		},
+		{
+			"Id": "ArtMeshObjects21",
+			"Name": "objects pose_anger_root"
+		},
+		{
+			"Id": "ArtMeshHandwearL",
+			"Name": "handwear-l"
+		},
+		{
+			"Id": "ArtMeshHandwearR",
+			"Name": "handwear-r"
+		},
+		{
+			"Id": "ArtMeshFootwear",
+			"Name": "footwear"
+		},
+		{
+			"Id": "ArtMeshLegwear",
+			"Name": "legwear"
+		},
+		{
+			"Id": "ArtMeshTail",
+			"Name": "tail"
+		},
+		{
+			"Id": "ArtMeshBackHair",
+			"Name": "back hair"
+		}
+	]
+}

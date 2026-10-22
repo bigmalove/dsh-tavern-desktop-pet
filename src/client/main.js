@@ -22,7 +22,12 @@ import { createGuidePresenter } from './guide/presenter.js'
 import { guide } from './guide/session.js'
 import { Live2DManager } from './pet/live2d/manager'
 import { DEFAULTS } from './pet/core/constants'
-import { BUNDLED_MODEL_ASSET, isBundledModelPath, setBundledModelUrl } from './pet/core/bundled-model'
+import {
+  BUNDLED_MODELS,
+  getBundledModelUrl,
+  resolveBundledModelUrl,
+  setBundledModelUrls,
+} from './pet/core/bundled-model'
 import { useSettingsStore } from './pet/core/settings'
 import GuideDock from './pet/ui/GuideDock.vue'
 import PetContainer from './pet/ui/PetContainer.vue'
@@ -223,23 +228,34 @@ export function apply(ctx) {
   const gameId = attachTavern({ tavernUi: ctx.tavernUi, sessions: ctx.sessions })
 
   const pinia = createPinia()
-  // 默认形象：插件自带的大肥鱼 Live2D（assets/live2d/dafeiyu）。旧版默认是 CDN 上的
-  // shizuku，装过旧版的用户把那个默认值迁过来；自己挑过模型的保持不动。
+  // 内置形象：插件自带的大肥鱼 Live2D 三套装扮（女仆 / Claude / 铁盆，assets/live2d/）。
+  // 旧版默认是 CDN 上的 shizuku，装过旧版的用户把那个默认值迁过来；玩家选过的内置
+  // 装扮则跟着当前运行时地址走（换端口/插件目录后旧地址会失效）。
   try {
     if (typeof ctx.tavernUi.assetUrl === 'function') {
-      const assetPath = ctx.tavernUi.assetUrl(BUNDLED_MODEL_ASSET)
-      const bundledModel = new URL(assetPath, window.location.href).href
-      setBundledModelUrl(bundledModel)
+      const bundledModelUrls = {}
+      for (const model of BUNDLED_MODELS) {
+        const assetPath = ctx.tavernUi.assetUrl(model.asset)
+        if (!assetPath) continue
+        bundledModelUrls[model.id] = new URL(assetPath, window.location.href).href
+      }
+      setBundledModelUrls(bundledModelUrls)
+
       const settingsStore = useSettingsStore(pinia)
       const current = String(settingsStore.settings.modelPath || '')
-      // 旧默认值、空值，以及换端口/来源前的自带模型地址，都归到当前地址。
-      if (current === '' || current === DEFAULTS.MODEL_PATH || isBundledModelPath(current)) {
-        settingsStore.updateSettings({ modelPath: bundledModel })
-        console.log('[dsh-tavern-desktop-pet] 默认形象切换为大肥鱼 Live2D', { model: bundledModel })
+      const migrated = resolveBundledModelUrl(current)
+      const fallback =
+        current === '' || current === DEFAULTS.MODEL_PATH ? getBundledModelUrl() : ''
+      const next = migrated || fallback
+      // 旧默认值、空值，以及换端口/来源前的内置模型地址，都归到当前地址；
+      // 自己挑过（非内置）的模型保持不动。
+      if (next && next !== current) {
+        settingsStore.updateSettings({ modelPath: next })
+        console.log('[dsh-tavern-desktop-pet] 内置形象地址已同步', { from: current, to: next })
       }
     }
   } catch (error) {
-    console.warn('[dsh-tavern-desktop-pet] 默认模型切换失败，继续用原模型', error)
+    console.warn('[dsh-tavern-desktop-pet] 内置模型地址准备失败，继续用原模型', error)
   }
   const app = createApp(PetContainer)
   app.use(pinia)

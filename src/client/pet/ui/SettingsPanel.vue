@@ -86,20 +86,21 @@
               </div>
 
               <div class="form-group">
-                <label>推荐模型</label>
+                <label>内置 / 推荐模型</label>
                 <div class="model-list">
                   <button
                     v-for="m in recommendedModels"
                     :key="m.path"
                     class="model-btn"
                     type="button"
-                    :class="{ active: settings.modelPath === m.path }"
+                    :class="{ active: isRecommendedModelActive(m.path) }"
                     @click="selectModel(m.path)"
                   >
                     {{ m.name }}
                   </button>
                   <button class="model-btn browse-btn" type="button" @click="showBrowser = true">浏览在线模型库</button>
                 </div>
+                <div class="hint">三套大肥鱼形象随插件分发，离线可用；点一下立刻切换。</div>
               </div>
 
               <div class="form-group">
@@ -600,7 +601,7 @@ import {
   type EmotionTag,
   type Live2DRuntimeType,
 } from '../core/constants';
-import { BUNDLED_MODEL_NAME, getBundledModelUrl } from '../core/bundled-model';
+import { findBundledModel, getBundledModelOptions } from '../core/bundled-model';
 import { createDefaultEmotionConfigs, parseAliasesText, type EmotionConfig } from '../core/emotion';
 import { useSettingsStore } from '../core/settings';
 import { deleteLive2DModel, getLive2DModel, hasLive2DModel, type StoredLive2DModel } from '../db/live2d-models';
@@ -759,12 +760,19 @@ const petScaleLabel = computed(() => toBoundedNumber(settings.value.petScale, DE
 ensureNumericSettingsIntegrity();
 
 const recommendedModels = computed(() => {
-  const bundled = getBundledModelUrl();
   return [
-    ...(bundled ? [{ name: BUNDLED_MODEL_NAME, path: bundled }] : []),
+    ...getBundledModelOptions().map((model) => ({ name: model.name, path: model.path })),
     ...RECOMMENDED_MODELS.map((model) => ({ name: model.name, path: model.path })),
   ];
 });
+
+// 旧地址（换端口/插件目录前存下的）也算同一套内置形象，避免高亮丢失。
+function isRecommendedModelActive(path: string): boolean {
+  if (settings.value.modelPath === path) return true;
+  const current = findBundledModel(settings.value.modelPath);
+  const target = findBundledModel(path);
+  return !!current && !!target && current.id === target.id;
+}
 const commentStyles = COMMENT_STYLES;
 const commentTriggerModeOptions = COMMENT_TRIGGER_MODE_OPTIONS;
 const showBrowser = ref(false);
