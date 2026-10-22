@@ -5,9 +5,12 @@
 // 不动 main.js。
 import { getVariables } from '../bridge/shims.js';
 import {
+  acquireVoiceLease,
   currentGameId,
   fillInput,
   onGameChange,
+  releaseVoiceLease,
+  renewVoiceLease,
   speak,
   standardEmotion,
   submitChoice,
@@ -21,6 +24,52 @@ let talkTimer = null;
 let talkSerial = 0;
 // 同一个情绪标签连续两轮不重复触发内置动作；换轮次或换阶段才重播。
 let poseSerial = 0;
+
+// 引导员在的时候，这一局的「声音」归它：拿一把 Tavern 的 voice 占用锁，
+// 别的插件据此让路；离开工作台或换局就释放。TTL 兜底，插件崩了也不会把声音永远占着。
+const VOICE_LEASE_MS = 120000;
+let voiceLease = null;
+let voiceLeaseGame = '';
+let voiceLeaseRenewedAt = 0;
+
+function dropVoiceLease() {
+  if (voiceLease) releaseVoiceLease(voiceLease);
+  voiceLease = null;
+  voiceLeaseGame = '';
+  voiceLeaseRenewedAt = 0;
+}
+
+function syncVoiceLease(active) {
+  const gameId = currentGameId();
+  if (!active || !gameId) {
+    dropVoiceLease();
+    return;
+  }
+  if (!voiceLease || voiceLeaseGame !== gameId) {
+    dropVoiceLease();
+    voiceLease = acquireVoiceLease(VOICE_LEASE_MS);
+    voiceLeaseGame = voiceLease ? gameId : '';
+    voiceLeaseRenewedAt = Date.now();
+    return;
+  }
+  if (Date.now() - voiceLeaseRenewedAt < VOICE_LEASE_MS / 3) return;
+  if (renewVoiceLease(voiceLease, VOICE_LEASE_MS)) {
+    voiceLeaseRenewedAt = Date.now();
+    return;
+  }
+  // 过期或丢了：重新拿一次，拿不到就安静工作（表情照常）。
+  voiceLease = null;
+  voiceLeaseGame = '';
+  voiceLeaseRenewedAt = 0;
+  voiceLease = acquireVoiceLease(VOICE_LEASE_MS);
+  voiceLeaseGame = voiceLease ? gameId : '';
+  voiceLeaseRenewedAt = Date.now();
+}
+
+/** 关掉桌宠 / 卸载时把声音还给别人；Tavern 卸载插件时也会自动释放，这里只是更快。 */
+export function stopGuideVoiceLease() {
+  dropVoiceLease();
+}
 
 function emotionConfigs() {
   const settings = getVariables() || {};
@@ -111,6 +160,7 @@ export const guide = createGuideController({
 // 这里跳过 presenting，避免同一轮播两次。
 let lastPoseKey = '';
 guide.subscribe((state) => {
+  syncVoiceLease(Boolean(state && state.active));
   if (!state || !state.active) {
     lastPoseKey = '';
     return;

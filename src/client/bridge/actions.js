@@ -19,6 +19,9 @@ export const petActions = {
   guideSettings: () => ({ enabled: true, fold: true }),
   setGuideSettings: null,
   guideStatus: () => '',
+  // 工作状态（Tavern 第 7 版）：当前状态与一行文案，侧栏面板显示用。
+  workStatus: () => null,
+  workStatusLabel: () => '',
 }
 
 export function providePetActions(actions) {
@@ -40,6 +43,8 @@ export function clearPetActions() {
   petActions.guideSettings = () => ({ enabled: true, fold: true })
   petActions.setGuideSettings = null
   petActions.guideStatus = () => ''
+  petActions.workStatus = () => null
+  petActions.workStatusLabel = () => ''
 }
 
 export function openPetSettings() {

@@ -75,6 +75,7 @@ function PetPanel(ctx) {
     const [choice, setChoice] = React.useState(() => petActions.commentModel() || { provider: '', model: '' })
     const [guide, setGuide] = React.useState(() => petActions.guideSettings?.() || { enabled: true, fold: true })
     const [guideState, setGuideState] = React.useState(() => petActions.guideStatus?.() || '')
+    const [work, setWork] = React.useState(() => petActions.workStatusLabel?.() || '')
 
     React.useEffect(() => {
       const timer = setInterval(() => {
@@ -82,6 +83,7 @@ function PetPanel(ctx) {
         setVisible(petActions.isVisible())
         setGuide(petActions.guideSettings?.() || { enabled: true, fold: true })
         setGuideState(petActions.guideStatus?.() || '')
+        setWork(petActions.workStatusLabel?.() || '')
       }, 1500)
       return () => clearInterval(timer)
     }, [])
@@ -121,6 +123,9 @@ function PetPanel(ctx) {
       'div',
       { className: 'pet-panel' },
       React.createElement('div', { className: 'pet-panel-desc' }, status || '桌宠正在启动…'),
+      ctx.tavernUi.apiVersion >= 7
+        ? React.createElement('div', { className: 'pet-panel-hint' }, `工作状态：${work || '空闲'}`)
+        : null,
       React.createElement(
         'div',
         { className: 'pet-panel-row' },

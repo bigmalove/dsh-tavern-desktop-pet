@@ -55,19 +55,24 @@ import { storeToRefs } from 'pinia';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { clearPetActions, providePetActions } from '../../bridge/actions';
 import {
+  currentGameId,
   fillInput as fillTavernInput,
+  foreignVoiceLease,
+  onGameChange,
   speak as speakViaTavern,
   standardEmotion,
   stopSpeaking as stopTavernSpeech,
+  watchWorkStatus,
 } from '../../bridge/tavern';
 import { guideDockActive } from '../../guide/dock-state';
-import { guide, stopGuideTalking } from '../../guide/session';
+import { guide, stopGuideTalking, stopGuideVoiceLease } from '../../guide/session';
 import { splitZhJaForDisplayAndTts } from '../chat/bilingual-text';
 import { Commentator } from '../chat/commentator';
 import { parseEmotionCotText } from '../chat/emotion-cot';
 import { ChatMonitor } from '../chat/monitor';
 import { DEFAULTS, LOCAL_LIVE2D_MODEL_PATH_PREFIX, type EmotionTag } from '../core/constants';
 import { useSettingsStore } from '../core/settings';
+import { faceForWorkStatus, labelForWorkStatus, shouldApplyWorkStatusFace } from '../core/work-status';
 import { useUiStore } from '../core/ui';
 import { hasLive2DModel } from '../db/live2d-models';
 import { Live2DManager, type ModelLoadProgress } from '../live2d/manager';
@@ -96,6 +101,13 @@ let globalOpenSettingsFn: (() => void) | null = null;
 const guideState = ref<any>(null);
 let stopGuideSubscribe: (() => void) | null = null;
 const guideActive = computed(() => Boolean(guideState.value && guideState.value.active));
+
+// 这一局的工作状态（Tavern 第 7 版）：思考/干活/等你回答/刚忙完/出错时换个表情。
+// 只在没有引导、没有气泡时动，免得抢引导员和吐槽的镜头。
+let stopWorkStatus: (() => void) | null = null;
+let stopWorkGame: (() => void) | null = null;
+let workStatus: { state?: string; tool?: string } | null = null;
+let lastWorkFace = '';
 // 停靠区接管时，固定气泡让位，避免同一句话显示两遍。
 const guideBubble = computed(() => {
   const state = guideState.value;
@@ -150,6 +162,42 @@ function getTopWindow(): Window {
 
 function applyEmotionToLive2D(tag: EmotionTag): boolean {
   return applyEmotionWithConfigs(tag, settings.value.emotionConfigs);
+}
+
+function applyWorkStatus(status: any): void {
+  workStatus = status && typeof status === 'object' ? status : null;
+  if (!workStatus) return;
+  if (
+    !shouldApplyWorkStatusFace({
+      status: workStatus,
+      guideActive: guideActive.value,
+      bubbleVisible: Boolean(String(bubbleText.value || '').trim()),
+    })
+  ) {
+    lastWorkFace = '';
+    return;
+  }
+  const face = faceForWorkStatus(workStatus.state);
+  if (!face || face === lastWorkFace) return;
+  lastWorkFace = face;
+  // 表情没匹配上（模型缺这组表情）就清掉记录，下一次状态变化再试。
+  if (!applyEmotionToLive2D(face as EmotionTag)) lastWorkFace = '';
+}
+
+function bindWorkStatus(): void {
+  stopWorkStatus?.();
+  stopWorkStatus = null;
+  if (petClosed) return;
+  const gameId = currentGameId();
+  if (!gameId) return;
+  stopWorkStatus = watchWorkStatus(gameId, applyWorkStatus);
+}
+
+function stopWorkStatusWatch(): void {
+  stopWorkStatus?.();
+  stopWorkStatus = null;
+  workStatus = null;
+  lastWorkFace = '';
 }
 
 watch(showSettings, (visible) => {
@@ -327,6 +375,8 @@ function closePet(closeSettingsPanel = true): void {
   clearStatusCheckTimer();
   clearViewportResizeSyncTimer();
   stopAllTalking();
+  stopWorkStatusWatch();
+  stopGuideVoiceLease();
   guide.setVisible(false);
 
   showMenu.value = false;
@@ -807,10 +857,17 @@ async function initPet() {
         commentTriggerMode: s.commentTriggerMode,
       },
       () => {
+        // 别的插件正占着这一局的「声音」：让路，别在它演出中间插嘴。
+        const holder = foreignVoiceLease();
+        if (holder) {
+          log(`声音被插件 ${holder.holder} 占用，跳过自动吐槽`);
+          return;
+        }
         void Commentator.generate();
       },
     );
 
+    bindWorkStatus();
     log('桌面宠物初始化完成');
     if (taskId !== initTaskId || petClosed) return;
     scheduleStatusCheck('init');
@@ -976,11 +1033,18 @@ onMounted(() => {
       if (next && typeof next.fold === 'boolean') settings.value.guideFoldQuestions = next.fold;
     },
     guideStatus: () => guide.describe(),
+    workStatus: () => workStatus,
+    workStatusLabel: () => labelForWorkStatus(workStatus),
   });
 
   // 引导状态桥成 Vue 响应式；桌宠被关掉时不订阅。
   stopGuideSubscribe = guide.subscribe((next: unknown) => {
     guideState.value = next;
+  });
+  // 换局后工作状态跟着换：退回旧局的 idle，再订阅新局。
+  stopWorkGame = onGameChange(() => {
+    if (petClosed) return;
+    bindWorkStatus();
   });
   if (settings.value.petVisible === false) {
     guide.setVisible(false);
@@ -1006,6 +1070,10 @@ onUnmounted(() => {
   initTaskId++;
   guide.stop();
   stopAllTalking();
+  stopWorkStatusWatch();
+  stopWorkGame?.();
+  stopWorkGame = null;
+  stopGuideVoiceLease();
   stopGuideSubscribe?.();
   stopGuideSubscribe = null;
   clearPetActions();

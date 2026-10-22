@@ -366,3 +366,74 @@ export function stopSpeaking() {
     // ignore
   }
 }
+
+/** 本插件在 Tavern 里的名字；占用锁的 holder 与它比较。 */
+export const PLUGIN_NAME = 'dsh-tavern-desktop-pet'
+
+/**
+ * 这一局的工作状态（Tavern 第 7 版）。接口不存在时返回空取消函数，
+ * 桌宠照旧按回合吐槽，不报错。
+ */
+export function watchWorkStatus(gameId, listener) {
+  const id = String(gameId || '')
+  if (!id || !state.tavernUi || typeof state.tavernUi.watchWorkStatus !== 'function') return () => {}
+  try {
+    // 自己的回调出错不该冒到 Tavern 的插件接口里：只记一条日志，状态照常收。
+    const stop = state.tavernUi.watchWorkStatus(id, (status) => {
+      try {
+        listener(status)
+      } catch (error) {
+        warn('工作状态回调失败', error)
+      }
+    })
+    return typeof stop === 'function' ? stop : () => {}
+  } catch (error) {
+    warn('订阅工作状态失败', error)
+    return () => {}
+  }
+}
+
+/**
+ * 拿这一局 voice 的占用锁。拿不到（别的插件占着 / 旧版 Tavern / 没有当前局）
+ * 返回 null；调用方照常工作，只是别人不知道声音归它。
+ */
+export function acquireVoiceLease(ttlMs = 120000) {
+  const gameId = state.gameId
+  if (!gameId || !state.tavernUi || typeof state.tavernUi.acquireLease !== 'function') return null
+  try {
+    return state.tavernUi.acquireLease({ sessionId: gameId, scope: 'voice', ttlMs, reason: '卡片工作台引导' })
+  } catch (error) {
+    warn('占用 voice 失败', error)
+    return null
+  }
+}
+
+/** 续期；锁已经丢了返回 false，调用方据此重拿。 */
+export function renewVoiceLease(lease, ttlMs = 120000) {
+  try {
+    lease?.renew?.(ttlMs)
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function releaseVoiceLease(lease) {
+  try {
+    lease?.release?.()
+  } catch {
+    // ignore
+  }
+}
+
+/** 别的插件正占着这一局的 voice；返回那把锁的快照，没有（或持有者是自己）返回 null。 */
+export function foreignVoiceLease() {
+  const gameId = state.gameId
+  if (!gameId || !state.tavernUi || typeof state.tavernUi.getLease !== 'function') return null
+  try {
+    const lease = state.tavernUi.getLease(gameId, 'voice')
+    return lease && lease.holder !== PLUGIN_NAME ? lease : null
+  } catch {
+    return null
+  }
+}
