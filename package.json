@@ -1,6 +1,6 @@
 {
   "name": "dsh-tavern-desktop-pet",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "description": "DSH Tavern 桌宠插件：把 Live2D 桌宠（原 SillyTavern 扩展 tavern-desktop-pet）搬到 Tavern 里，跟着剧情吐槽、换表情、念台词；在卡片工作台里当建卡引导员。",

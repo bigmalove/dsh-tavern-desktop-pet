@@ -1,37 +1,66 @@
-﻿<template>
+<template>
   <div>
     <div v-if="visible" class="settings-overlay dp-settings-overlay" :style="overlayFallbackStyle" @click.self="close">
-      <div class="settings-panel dp-settings-panel" :style="panelFallbackStyle">
+      <div
+        class="settings-panel dp-settings-panel"
+        :style="panelFallbackStyle"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pet-settings-title"
+      >
         <div class="panel-header">
           <div class="header-title">
-            <h3>桌面宠物控制终端</h3>
-            <p>SYSTEM // SETTINGS</p>
+            <h3 id="pet-settings-title">桌宠设置</h3>
+            <p>模型、吐槽、表情与朗读 · 跟随 DSH 皮肤</p>
           </div>
-          <button class="close-btn" type="button" @click="close">CLOSE</button>
+          <button class="close-btn" type="button" aria-label="关闭设置" @click="close">
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
         </div>
 
         <div class="panel-main">
-          <aside class="panel-nav">
+          <aside class="panel-nav" aria-label="设置分区">
             <button
               v-for="item in sectionTabs"
               :key="item.key"
               class="nav-btn"
               type="button"
               :class="{ active: activeSection === item.key }"
+              :aria-current="activeSection === item.key ? 'page' : undefined"
               @click="activeSection = item.key"
             >
-              <span class="nav-index">{{ item.index }}</span>
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path :d="item.icon" />
+              </svg>
               <span class="nav-label">{{ item.label }}</span>
-              <span class="nav-sub">{{ item.en }}</span>
             </button>
           </aside>
 
           <div class="panel-body">
             <section class="setting-section" v-show="activeSection === 'model'">
               <h4>
-                <span class="section-index">01</span>
                 <span class="section-label">模型</span>
-                <span class="section-sub">MODEL CONTROL</span>
+                <span class="section-sub">选择吐槽时使用的模型通道</span>
               </h4>
 
               <div class="setting-group">
@@ -57,9 +86,8 @@
             </section>
             <section class="setting-section" v-show="activeSection === 'live2d'">
               <h4>
-                <span class="section-index">02</span>
                 <span class="section-label">Live2D 模型</span>
-                <span class="section-sub">MODEL CONTROL</span>
+                <span class="section-sub">形象、缩放与交互</span>
               </h4>
 
               <div class="form-group">
@@ -183,9 +211,8 @@
 
             <section class="setting-section" v-show="activeSection === 'comment'">
               <h4>
-                <span class="section-index">03</span>
                 <span class="section-label">吐槽设置</span>
-                <span class="section-sub">COMMENT SYSTEM</span>
+                <span class="section-sub">语气、触发时机与上下文</span>
               </h4>
 
               <div class="form-group">
@@ -276,9 +303,8 @@
 
             <section class="setting-section" v-show="activeSection === 'expression'">
               <h4>
-                <span class="section-index">04</span>
                 <span class="section-label">表情设置</span>
-                <span class="section-sub">EMOTION COT</span>
+                <span class="section-sub">让文字里的情绪驱动表情与动作</span>
               </h4>
 
               <div class="emotion-layout">
@@ -473,9 +499,8 @@
 
             <section class="setting-section" v-show="activeSection === 'tts'">
               <h4>
-                <span class="section-index">05</span>
                 <span class="section-label">朗读</span>
-                <span class="section-sub">VOICE CONTROL</span>
+                <span class="section-sub">使用 Tavern 管理的声音渠道</span>
               </h4>
 
               <div class="notice-box">
@@ -514,9 +539,8 @@
 
             <section class="setting-section" v-show="activeSection === 'about'">
               <h4>
-                <span class="section-index">06</span>
                 <span class="section-label">关于</span>
-                <span class="section-sub">ABOUT & LICENSE</span>
+                <span class="section-sub">版本、发布地址与授权</span>
               </h4>
 
               <div class="about-card">
@@ -559,7 +583,7 @@
 
         <div class="panel-footer">
           <button class="btn btn-secondary" type="button" @click="resetSettings">恢复默认</button>
-          <button class="btn btn-primary" type="button" @click="close">确定</button>
+          <button class="btn btn-primary" type="button" @click="close">完成</button>
         </div>
       </div>
     </div>
@@ -573,8 +597,24 @@
     >
       <div class="browser-dialog dp-browser-dialog" :style="panelFallbackStyle">
         <div class="browser-dialog-header">
-          <h3>在线模型库</h3>
-          <button class="close-btn" type="button" @click="showBrowser = false">X</button>
+          <div class="browser-dialog-heading">
+            <h3>在线模型库</h3>
+            <span>Eikanya/Live2d-model</span>
+          </div>
+          <button class="close-btn" type="button" aria-label="关闭在线模型库" @click="showBrowser = false">
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
         </div>
         <div class="browser-dialog-body">
           <ModelBrowser :use-cdn="settings.useCdn" @cancel="showBrowser = false" @load-model="onBrowserLoad" />
@@ -640,16 +680,39 @@ type SectionKey = 'model' | 'live2d' | 'comment' | 'expression' | 'tts' | 'about
 
 const sectionTabs: ReadonlyArray<{
   key: SectionKey;
-  index: string;
   label: string;
-  en: string;
+  icon: string;
 }> = [
-  { key: 'model', index: '01', label: '模型', en: 'MODEL CONTROL' },
-  { key: 'live2d', index: '02', label: 'Live2D', en: 'LIVE2D MODEL' },
-  { key: 'comment', index: '03', label: '吐槽', en: 'COMMENT SYSTEM' },
-  { key: 'expression', index: '04', label: '表情', en: 'EMOTION COT' },
-  { key: 'tts', index: '05', label: '朗读', en: 'VOICE CONTROL' },
-  { key: 'about', index: '06', label: '关于', en: 'ABOUT & LICENSE' },
+  {
+    key: 'model',
+    label: '模型',
+    icon: 'M12 3l1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z',
+  },
+  {
+    key: 'live2d',
+    label: 'Live2D',
+    icon: 'M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v13a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 18.5zM12 11a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM7.5 17.5a4.5 4.5 0 0 1 9 0',
+  },
+  {
+    key: 'comment',
+    label: '吐槽',
+    icon: 'M21 14a3 3 0 0 1-3 3H8l-4 4V6a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3z',
+  },
+  {
+    key: 'expression',
+    label: '表情',
+    icon: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM8.5 14s1.2 2 3.5 2 3.5-2 3.5-2M9 9h.01M15 9h.01',
+  },
+  {
+    key: 'tts',
+    label: '朗读',
+    icon: 'M11 5 6.5 9H3v6h3.5L11 19zM15 9a4 4 0 0 1 0 6M18 6a8 8 0 0 1 0 12',
+  },
+  {
+    key: 'about',
+    label: '关于',
+    icon: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8h.01',
+  },
 ];
 
 // 默认停在 Live2D：这是玩家最常改的一页（换模型、调大小）。
@@ -1353,7 +1416,22 @@ watch(
   { immediate: true },
 );
 
+// DSH 的弹窗习惯：Esc 先关最上层的模型库，再关设置。
+function onSettingsKeydown(event: KeyboardEvent): void {
+  if (!props.visible || event.key !== 'Escape') return;
+  if (showBrowser.value) {
+    showBrowser.value = false;
+    return;
+  }
+  close();
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('keydown', onSettingsKeydown);
+}
+
 onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onSettingsKeydown);
   cleanupPreviewMount(false);
 });
 
@@ -1379,13 +1457,12 @@ const overlayFallbackStyle = {
   alignItems: 'center',
   justifyContent: 'center',
 };
+// 尺寸、背景、圆角都交给 .settings-panel / .browser-dialog 的 CSS：
+// 它们要跟着 DSH 令牌和窄屏媒体查询走，内联尺寸会盖掉移动端全屏规则。
 const panelFallbackStyle = {
   position: 'relative',
   display: 'flex',
   flexDirection: 'column',
-  width: 'min(1080px, calc(100vw - 24px))',
-  maxHeight: 'calc(100vh - 24px)',
-  minHeight: '280px',
 };
 
 type CustomApiModelConfig = {
@@ -2056,36 +2133,38 @@ watch(
 </script>
 
 <style lang="scss" scoped>
-@use './styles/theme-arknights.scss' as theme;
+@use './styles/theme-dsh.scss' as dsh;
+
+/* 整个面板只用 DSH 的设计令牌：换皮肤 / 切深浅色时由 body 上的
+   --dsw-alias-* 变量自动更新，不依赖主题事件。 */
 
 .settings-overlay {
-  @include theme.overlay-backdrop(1500, 0.82);
-  padding: 12px;
+  @include dsh.overlay(1500);
+  padding: 16px;
   box-sizing: border-box;
   overflow: auto;
+  animation: dsh-fade-in 0.18s ease-out;
 }
 
 .settings-panel {
-  width: min(1080px, calc(100vw - 24px));
-  max-height: calc(100dvh - 24px);
+  width: min(1040px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  min-height: 360px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  color: theme.$ark-text-main;
-  background: theme.$ark-base;
-  font-family: theme.$font-cn;
-  @include theme.tech-panel(theme.$ark-accent-yellow);
-  @include theme.tech-grid(22px, 0.03);
+  @include dsh.surface();
+  animation: dsh-panel-in 0.2s ease-out;
 }
 
 .panel-header {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  padding: 14px 18px;
-  border-bottom: 2px solid theme.$ark-accent-yellow;
-  background: rgba(0, 0, 0, 0.32);
+  gap: 16px;
+  padding: 18px 22px 14px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l1, #eee8e0);
 }
 
 .header-title {
@@ -2093,231 +2172,338 @@ watch(
 
   h3 {
     margin: 0;
-    font-size: 20px;
-    line-height: 1;
-    font-family: theme.$font-en;
+    font-size: 16px;
+    line-height: 24px;
     font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    letter-spacing: 0;
+    color: var(--dsw-alias-label-primary, #141413);
   }
 
   p {
-    margin: 4px 0 0;
-    font-size: 10px;
-    color: theme.$ark-text-sub;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
+    margin: 3px 0 0;
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--dsw-alias-label-tertiary, #827d75);
   }
 }
 
 .close-btn {
-  @include theme.ark-button-base;
-  min-width: 88px;
-  height: 32px;
-  padding: 0 10px;
-  font-size: 12px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dsw-radius-sm, 8px);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #6c6a64);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background: var(--dsw-alias-interactive-bg-hover, rgba(0, 0, 0, 0.05));
+    color: var(--dsw-alias-label-primary, #141413);
+  }
+
+  &:focus-visible {
+    outline: 2px solid
+      color-mix(
+        in srgb,
+        var(--dsw-alias-state-business-primary, #cc785c) 55%,
+        transparent
+      );
+    outline-offset: 2px;
+  }
 }
 
 .panel-main {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 196px minmax(0, 1fr);
 }
 
 .panel-nav {
-  border-right: 1px solid rgba(255, 255, 255, 0.16);
-  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 12px;
+  border-right: 0.5px solid var(--dsw-alias-border-l1, #eee8e0);
   overflow: auto;
-  @include theme.ark-scrollbar;
+  @include dsh.scrollbar;
 }
 
 .nav-btn {
-  @include theme.ark-button-base;
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
-  min-height: 62px;
-  padding: 10px 12px;
-  margin-bottom: 10px;
+  height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--dsw-radius-md, 12px);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #6c6a64);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
   text-align: left;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-areas:
-    'idx label'
-    'idx sub';
-  column-gap: 8px;
-  row-gap: 2px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
 
-  &:last-child {
-    margin-bottom: 0;
+  &:hover {
+    background: var(--dsw-alias-interactive-bg-hover, rgba(0, 0, 0, 0.05));
+    color: var(--dsw-alias-label-primary, #141413);
   }
 
   &.active {
-    background: theme.$ark-accent-yellow;
-    color: #000;
-    border-color: theme.$ark-accent-yellow;
+    background: color-mix(
+      in srgb,
+      var(--dsw-alias-brand-primary, #cc785c) 16%,
+      transparent
+    );
+    color: var(--dsw-alias-label-primary, #141413);
+  }
+
+  &.active .nav-icon {
+    color: var(--dsw-alias-brand-primary, #cc785c);
+  }
+
+  &:focus-visible {
+    outline: 2px solid
+      color-mix(
+        in srgb,
+        var(--dsw-alias-state-business-primary, #cc785c) 55%,
+        transparent
+      );
+    outline-offset: -2px;
   }
 }
 
-.nav-index {
-  grid-area: idx;
-  align-self: center;
-  font-family: theme.$font-en;
-  color: theme.$ark-accent-cyan;
-  font-size: 18px;
+.nav-icon {
+  flex: none;
+  width: 17px;
+  height: 17px;
+  color: currentColor;
+  opacity: 0.9;
 }
 
 .nav-label {
-  grid-area: label;
-  font-family: theme.$font-en;
-  font-size: 13px;
-  letter-spacing: 0.05em;
-}
-
-.nav-sub {
-  grid-area: sub;
-  font-size: 10px;
-  color: theme.$ark-text-sub;
-  letter-spacing: 0.06em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .panel-body {
-  padding: 14px 18px 16px;
+  min-width: 0;
+  padding: 20px 26px 28px;
   overflow: auto;
-  @include theme.ark-scrollbar;
+  @include dsh.scrollbar;
 }
 
 .setting-section {
-  max-width: 740px;
+  max-width: 760px;
 
   h4 {
-    @include theme.section-title;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 0;
+    padding: 0 0 14px;
+    border-bottom: 0.5px solid var(--dsw-alias-border-l1, #eee8e0);
   }
-}
-
-.section-index {
-  color: theme.$ark-accent-cyan;
-  font-family: theme.$font-en;
-  font-size: 13px;
 }
 
 .section-label {
-  font-family: theme.$font-en;
-  font-size: 14px;
-  letter-spacing: 0.04em;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary, #141413);
 }
 
 .section-sub {
-  font-size: 10px;
-  color: theme.$ark-text-sub;
-  letter-spacing: 0.06em;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 400;
+  color: var(--dsw-alias-label-tertiary, #827d75);
 }
 
+.setting-group,
 .form-group {
-  margin-bottom: 12px;
+  margin: 0;
+  padding: 13px 0;
+}
 
-  > label {
-    display: block;
-    margin-bottom: 5px;
-    font-size: 12px;
-    color: #d5d5d5;
-    line-height: 1.35;
-  }
+.setting-section > .form-group,
+.setting-section > .setting-group,
+.setting-section > .form-row {
+  border-top: 0.5px solid var(--dsw-alias-border-l1, #eee8e0);
+}
 
-  > label > input[type='checkbox'] {
-    margin-right: 8px;
-    accent-color: theme.$ark-accent-cyan;
-  }
+.setting-section > h4 + .form-group,
+.setting-section > h4 + .setting-group,
+.setting-section > h4 + .form-row {
+  border-top: 0;
+}
 
-  input[type='text'],
-  input[type='password'],
-  input[type='number'],
-  select,
-  textarea {
-    @include theme.ark-input-base;
-  }
+.setting-label,
+.form-group > label {
+  display: block;
+  margin: 0 0 6px;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-primary, #141413);
+}
 
-  textarea {
-    resize: vertical;
-    min-height: 86px;
-    font-family: theme.$font-mono;
-    color: #fff;
-  }
+.form-group > label:has(> input[type='checkbox']) {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-weight: 400;
+}
 
-  select {
-    color: #fff;
-    font-family: theme.$font-cn;
-  }
+.form-group > label > input[type='checkbox'] {
+  flex: none;
+  margin: 2px 0 0;
+}
 
-  select option {
-    background: #101010;
-    color: #fff;
-  }
+.form-group > label:has(> input[type='checkbox']:disabled) {
+  opacity: 0.55;
+}
 
-  input[type='range'] {
-    width: 100%;
-    appearance: none;
-    height: 4px;
-    border: none;
-    background: #4a4a4a;
-    border-radius: 0;
-    padding: 0;
-    margin: 7px 0 4px;
-  }
+.hint,
+.setting-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--dsw-alias-label-tertiary, #827d75);
+}
 
-  input[type='range']::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 12px;
-    height: 12px;
-    background: theme.$ark-accent-yellow;
-    border: 2px solid #000;
-    transform: rotate(45deg);
-  }
+.setting-hint {
+  margin: 6px 0 8px;
+}
 
-  input[type='range']::-moz-range-thumb {
-    width: 12px;
-    height: 12px;
-    border: 2px solid #000;
-    border-radius: 0;
-    background: theme.$ark-accent-yellow;
-    transform: rotate(45deg);
-  }
-
-  input[type='range']::-moz-range-track {
-    height: 4px;
-    background: #4a4a4a;
-    border: none;
-  }
-
-  input[type='checkbox'] {
-    accent-color: theme.$ark-accent-cyan;
-  }
-
-  .hint {
-    margin-top: 4px;
-    font-size: 11px;
-    color: theme.$ark-text-sub;
-  }
+.hint code {
+  padding: 1px 5px;
+  border-radius: var(--dsw-radius-xs, 4px);
+  background: var(--dsw-alias-bg-layer-1, #f5f0e8);
+  color: var(--dsw-alias-label-secondary, #6c6a64);
+  font-family: dsh.$mono;
+  font-size: 11.5px;
 }
 
 .hint-error {
-  color: theme.$ark-danger !important;
+  color: var(--dsw-alias-state-error-primary, #ec1313) !important;
 }
 
-/* 说明块：告诉玩家这件事现在由谁负责（例如朗读渠道归 Tavern 管）。 */
-.notice-box {
-  margin-bottom: 12px;
-  padding: 8px 10px;
-  font-size: 11px;
+/* 文本类控件统一用 DSH 设置表单的尺寸、描边和聚焦色。 */
+.settings-panel :is(
+    input[type='text'],
+    input[type='password'],
+    input[type='number'],
+    select,
+    textarea
+  ) {
+  @include dsh.input-base;
+}
+
+.settings-panel textarea {
+  height: auto;
+  min-height: 96px;
+  padding: 10px 11px;
   line-height: 1.6;
-  color: theme.$ark-text-sub;
-  border-left: 2px solid theme.$ark-accent-cyan;
-  background: rgba(0, 218, 194, 0.06);
+  resize: vertical;
+}
+
+.settings-panel select {
+  padding-right: 30px;
+}
+
+.settings-panel input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--dsw-alias-brand-primary, #cc785c);
+}
+
+.settings-panel input[type='range'] {
+  appearance: none;
+  width: 100%;
+  height: 20px;
+  margin: 4px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  accent-color: var(--dsw-alias-brand-primary, #cc785c);
+  cursor: pointer;
+
+  &::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 999px;
+    background: color-mix(
+      in srgb,
+      var(--dsw-alias-label-primary, #141413) 16%,
+      transparent
+    );
+  }
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: -5px;
+    border: 2px solid var(--dsw-alias-bg-layer-2, #fffdf8);
+    border-radius: 50%;
+    background: var(--dsw-alias-brand-primary, #cc785c);
+    box-shadow: 0 0 0 0.5px var(--dsw-alias-border-l3, rgba(0, 0, 0, 0.12));
+  }
+
+  &::-moz-range-track {
+    height: 4px;
+    border: 0;
+    border-radius: 999px;
+    background: color-mix(
+      in srgb,
+      var(--dsw-alias-label-primary, #141413) 16%,
+      transparent
+    );
+  }
+
+  &::-moz-range-progress {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--dsw-alias-brand-primary, #cc785c);
+  }
+
+  &::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--dsw-alias-bg-layer-2, #fffdf8);
+    border-radius: 50%;
+    background: var(--dsw-alias-brand-primary, #cc785c);
+  }
+}
+
+.settings-panel input[type='range']:focus-visible {
+  outline: 2px solid
+    color-mix(
+      in srgb,
+      var(--dsw-alias-state-business-primary, #cc785c) 55%,
+      transparent
+    );
+  outline-offset: 2px;
 }
 
 .form-row {
   display: flex;
-  gap: 12px;
   align-items: flex-start;
+  gap: 16px;
 
   .half {
     flex: 1;
@@ -2325,9 +2511,17 @@ watch(
   }
 }
 
+.form-row .form-group {
+  padding: 0;
+  border-top: 0;
+}
+
+.form-row + .form-row {
+  border-top: 0;
+}
+
 .input-with-btn {
   display: grid;
-  /* 输入框 + 两个按钮（如「播放 / 停止」）；只放一个按钮时第三个单元格自然空着也不挤。 */
   grid-template-columns: 1fr auto auto;
   gap: 8px;
   align-items: stretch;
@@ -2335,76 +2529,102 @@ watch(
   .input-btn,
   .btn {
     min-width: 84px;
+    height: 34px;
     padding: 0 12px;
-    font-size: 11px;
+    font-size: 12px;
     white-space: nowrap;
   }
+}
+
+.input-btn {
+  @include dsh.button-base(34px);
+  min-width: 84px;
+  font-size: 12px;
 }
 
 .model-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-top: 8px;
 }
 
 .hidden-file-input {
   display: none;
 }
 
-.local-model-info {
-  margin-top: 6px;
-  padding: 8px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.04);
-  font-size: 12px;
-  line-height: 1.45;
-  color: #e8e8e8;
-}
-
 .model-btn {
-  @include theme.ark-button-base;
-  min-height: 30px;
+  @include dsh.button-base(32px);
   padding: 0 12px;
-  font-size: 12px;
+  border-color: transparent;
+  background: var(--dsw-alias-bg-layer-1, #f5f0e8);
+  font-size: 12.5px;
   text-transform: none;
-  letter-spacing: 0.03em;
+  letter-spacing: 0;
 
   &.active {
-    background: theme.$ark-accent-yellow;
-    border-color: theme.$ark-accent-yellow;
-    color: #000;
+    border-color: var(--dsw-alias-brand-primary, #cc785c);
+    background: var(--dsw-alias-brand-primary, #cc785c);
+    color: var(--dsw-alias-brand-text, #fff);
   }
 
   &.browse-btn {
-    border-color: rgba(0, 218, 194, 0.55);
-    color: #b2fff6;
-
-    &:hover {
-      background: theme.$ark-accent-cyan;
-      border-color: theme.$ark-accent-cyan;
-      color: #000;
-    }
+    border-color: color-mix(
+      in srgb,
+      var(--dsw-alias-brand-primary, #cc785c) 45%,
+      transparent
+    );
+    background: transparent;
+    color: var(--dsw-alias-brand-primary, #cc785c);
   }
+}
+
+.local-model-info {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l2, #e6dfd8);
+  border-radius: var(--dsw-radius-md, 12px);
+  background: var(--dsw-alias-bg-layer-1, #f5f0e8);
+  color: var(--dsw-alias-label-secondary, #6c6a64);
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+
+/* 说明块：告诉玩家这件事现在由谁负责（例如朗读渠道归 Tavern 管）。 */
+.notice-box {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 0.5px solid var(--dsw-alias-border-l2, #e6dfd8);
+  border-radius: var(--dsw-radius-md, 12px);
+  background: var(--dsw-alias-bg-layer-1, #f5f0e8);
+  color: var(--dsw-alias-label-secondary, #6c6a64);
+  font-size: 12.5px;
+  line-height: 1.7;
 }
 
 .emotion-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
   align-items: start;
+  margin-top: 14px;
 }
 
 .emotion-configs {
   min-width: 0;
+
+  > .form-group + .form-group {
+    border-top: 0.5px solid var(--dsw-alias-border-l1, #eee8e0);
+  }
 }
 
 .emotion-preview-panel {
   position: sticky;
-  top: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(0, 0, 0, 0.28);
-  padding: 10px 12px 12px;
-  @include theme.tech-grid(18px, 0.02);
+  top: 8px;
+  padding: 14px;
+  border: 0.5px solid var(--dsw-alias-border-l2, #e6dfd8);
+  border-radius: var(--dsw-radius-lg, 16px);
+  background: var(--dsw-alias-bg-layer-1, #f5f0e8);
 }
 
 .emotion-preview-header {
@@ -2416,25 +2636,34 @@ watch(
 }
 
 .emotion-preview-title {
-  font-family: theme.$font-en;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: theme.$ark-accent-cyan;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary, #141413);
 }
 
 .emotion-preview-tag {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--dsw-alias-label-tertiary, #827d75);
 }
 
 .emotion-preview-canvas {
   position: relative;
   width: 100%;
   aspect-ratio: 3 / 4;
-  border-radius: 10px;
   overflow: hidden;
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 0.5px solid var(--dsw-alias-border-l2, #e6dfd8);
+  border-radius: var(--dsw-radius-md, 12px);
+  background:
+    radial-gradient(
+      circle at 50% 32%,
+      color-mix(
+        in srgb,
+        var(--dsw-alias-brand-primary, #cc785c) 10%,
+        transparent
+      ),
+      transparent 64%
+    ),
+    var(--dsw-alias-bg-layer-3, #fff);
 }
 
 .emotion-preview-interact {
@@ -2446,39 +2675,39 @@ watch(
 .emotion-preview-empty {
   position: absolute;
   inset: 0;
+  z-index: 4;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 10px;
   text-align: center;
-  z-index: 4;
   pointer-events: none;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--dsw-alias-label-tertiary, #827d75);
   font-size: 12px;
 }
 
 .emotion-preview-controls {
-  margin-top: 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-top: 10px;
 }
 
 .emotion-zoom-row {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 10px;
   align-items: center;
+  gap: 10px;
 }
 
 .zoom-label {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--dsw-alias-label-secondary, #6c6a64);
 }
 
 .zoom-value {
+  color: var(--dsw-alias-label-primary, #141413);
   font-size: 12px;
-  color: theme.$ark-accent-yellow;
   font-variant-numeric: tabular-nums;
 }
 
@@ -2487,27 +2716,52 @@ watch(
   gap: 8px;
 }
 
-.emotion-tag {
-  font-family: theme.$font-en;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: theme.$ark-accent-yellow;
-  text-transform: uppercase;
+.advanced-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #6c6a64);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    color: var(--dsw-alias-label-primary, #141413);
+  }
+
+  &:focus-visible {
+    outline: 2px solid
+      color-mix(
+        in srgb,
+        var(--dsw-alias-state-business-primary, #cc785c) 55%,
+        transparent
+      );
+    outline-offset: 2px;
+  }
+
+  .toggle-icon {
+    width: 12px;
+    color: var(--dsw-alias-label-tertiary, #827d75);
+    font-size: 10px;
+    text-align: center;
+  }
 }
 
 .emotion-map-table {
-  margin-top: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(0, 0, 0, 0.22);
-  max-height: none;
-  overflow: visible;
-  @include theme.tech-grid(20px, 0.02);
+  margin-top: 12px;
+  overflow: hidden;
+  border: 0.5px solid var(--dsw-alias-border-l2, #e6dfd8);
+  border-radius: var(--dsw-radius-md, 12px);
 }
 
 .emotion-map-head,
 .emotion-map-row {
   display: grid;
-  grid-template-columns: 72px 22px minmax(0, 1fr) minmax(0, 1fr) 52px;
+  grid-template-columns: 72px 20px minmax(0, 1fr) minmax(0, 1fr) 44px;
   gap: 10px;
   align-items: center;
 }
@@ -2516,459 +2770,280 @@ watch(
   position: sticky;
   top: 0;
   z-index: 2;
-  padding: 8px 10px;
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.68);
-  letter-spacing: 0.03em;
-  background: rgba(2, 8, 20, 0.92);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 9px 12px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2, #e6dfd8);
+  background: var(--dsw-alias-bg-layer-1, #f5f0e8);
+  color: var(--dsw-alias-label-tertiary, #827d75);
+  font-size: 11px;
+  letter-spacing: 0;
 }
 
 .emotion-map-row {
-  padding: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-}
+  padding: 10px 12px;
+  border-top: 0.5px solid var(--dsw-alias-border-l1, #eee8e0);
+  transition: background 0.15s ease;
 
-.emotion-map-row:nth-child(odd) {
-  background: rgba(255, 255, 255, 0.02);
+  &:hover {
+    background: var(--dsw-alias-interactive-bg-hover, rgba(0, 0, 0, 0.04));
+  }
+
+  &:first-of-type {
+    border-top: 0;
+  }
 }
 
 .emotion-map-tag {
-  font-family: theme.$font-en;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: theme.$ark-accent-yellow;
+  color: var(--dsw-alias-label-primary, #141413);
+  font-size: 12.5px;
+  font-weight: 600;
 }
 
 .emotion-map-arrow {
+  color: var(--dsw-alias-label-tertiary, #827d75);
+  font-size: 15px;
+  line-height: 1;
   text-align: center;
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 18px;
-  line-height: 1;
-}
-
-.emotion-map-preview-btn {
-  min-width: 0;
-  width: 44px;
-  height: 32px;
-  padding: 0;
-  font-size: 14px;
-  line-height: 1;
 }
 
 .emotion-map-row select {
-  width: 100%;
   min-width: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  height: 32px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+/* 也带 .btn 类，所以要多一级特异性压过下面 .btn 的 min-width。 */
+.btn.emotion-map-preview-btn {
+  width: 36px;
+  min-width: 0;
+  height: 32px;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
 }
 
 .emotion-advanced-list {
-  margin-top: 10px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  margin-top: 12px;
 }
 
 .emotion-advanced-item {
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(0, 0, 0, 0.28);
-  padding: 10px 12px 2px;
-  @include theme.tech-grid(18px, 0.025);
+  padding: 12px 14px 2px;
+  border: 0.5px solid var(--dsw-alias-border-l2, #e6dfd8);
+  border-radius: var(--dsw-radius-md, 12px);
+  background: var(--dsw-alias-bg-layer-1, #f5f0e8);
 }
 
 .emotion-advanced-title {
   margin-bottom: 8px;
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.advanced-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.04);
-  font-size: 11px;
-  color: #d5d5d5;
-  cursor: pointer;
-  user-select: none;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
-
-  &:hover {
-    border-color: rgba(255, 225, 0, 0.65);
-    color: theme.$ark-accent-yellow;
-  }
-
-  .toggle-icon {
-    width: 12px;
-    text-align: center;
-    color: theme.$ark-accent-cyan;
-  }
-}
-
-.advanced-params {
-  margin-top: 8px;
-  padding-top: 10px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.2);
+  color: var(--dsw-alias-label-primary, #141413);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .about-card {
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(0, 0, 0, 0.26);
-  @include theme.tech-grid(18px, 0.02);
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 0.5px solid var(--dsw-alias-border-l2, #e6dfd8);
+  border-radius: var(--dsw-radius-md, 12px);
+  background: var(--dsw-alias-bg-layer-1, #f5f0e8);
 }
 
 .about-title {
-  margin-bottom: 8px;
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  color: theme.$ark-accent-yellow;
+  margin-bottom: 6px;
+  color: var(--dsw-alias-label-primary, #141413);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .about-link {
-  color: theme.$ark-accent-cyan;
-  word-break: break-all;
+  color: var(--dsw-alias-brand-primary, #cc785c);
   text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
+
+  &:hover {
+    color: var(--dsw-alias-button-primary-hover, #a9583e);
+  }
 }
 
 .about-list {
-  margin: 0;
-  padding-left: 18px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: #d5d5d5;
-}
-
-.status-badge {
-  margin-left: 8px;
-  font-size: 12px;
-}
-
-.status-success {
-  color: theme.$ark-accent-cyan;
-}
-
-.status-fail {
-  color: #ff9c94;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--dsw-alias-label-secondary, #6c6a64);
+  font-size: 12.5px;
+  line-height: 1.7;
 }
 
 .panel-footer {
+  flex: none;
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
   gap: 10px;
-  padding: 12px 18px 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(0, 0, 0, 0.36);
+  padding: 14px 22px;
+  border-top: 0.5px solid var(--dsw-alias-border-l1, #eee8e0);
 }
 
 .btn {
-  @include theme.ark-button-base;
-  min-width: 100px;
-  height: 34px;
-  padding: 0 14px;
-  font-size: 12px;
+  @include dsh.button-base(34px);
+  min-width: 96px;
+  padding: 0 16px;
 }
 
 .btn-primary {
-  background: theme.$ark-accent-yellow;
-  color: #000;
-  border-color: theme.$ark-accent-yellow;
+  border-color: var(--dsw-alias-brand-primary, #cc785c);
+  background: var(--dsw-alias-brand-primary, #cc785c);
+  color: var(--dsw-alias-brand-text, #fff);
+
+  &:hover:not(:disabled) {
+    border-color: var(--dsw-alias-button-primary-hover, #a9583e);
+    background: var(--dsw-alias-button-primary-hover, #a9583e);
+    color: var(--dsw-alias-brand-text, #fff);
+  }
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--dsw-alias-bg-layer-3, #fff);
 }
 
 .btn-test {
-  min-width: 96px;
-  background: rgba(0, 218, 194, 0.1);
-  border-color: rgba(0, 218, 194, 0.6);
-  color: #bcfff7;
+  border-color: color-mix(
+    in srgb,
+    var(--dsw-alias-brand-primary, #cc785c) 45%,
+    transparent
+  );
+  background: transparent;
+  color: var(--dsw-alias-brand-primary, #cc785c);
 
   &:hover:not(:disabled) {
-    background: theme.$ark-accent-cyan;
-    border-color: theme.$ark-accent-cyan;
-    color: #000;
+    border-color: var(--dsw-alias-brand-primary, #cc785c);
+    background: var(--dsw-alias-interactive-bg-hover, rgba(0, 0, 0, 0.05));
   }
 }
 
 .browser-overlay {
-  @include theme.overlay-backdrop(1550, 0.8);
-  padding: 12px;
+  @include dsh.overlay(1550);
+  padding: 16px;
   box-sizing: border-box;
   overflow: auto;
+  animation: dsh-fade-in 0.18s ease-out;
 }
 
 .browser-dialog {
-  width: min(980px, calc(100vw - 24px));
-  max-height: calc(100dvh - 24px);
+  width: min(980px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  color: theme.$ark-text-main;
-  background: theme.$ark-base;
-  font-family: theme.$font-cn;
-  @include theme.tech-panel(theme.$ark-accent-yellow);
-  @include theme.tech-grid(22px, 0.03);
+  @include dsh.surface();
 }
 
 .browser-dialog-header {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 18px;
-  border-bottom: 1px solid rgba(255, 225, 0, 0.36);
-  background: rgba(0, 0, 0, 0.28);
+  padding: 18px 22px 14px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l1, #eee8e0);
 
   h3 {
     margin: 0;
-    font-family: theme.$font-en;
-    font-size: 15px;
-    letter-spacing: 0.08em;
-  }
-
-  .close-btn {
-    @include theme.ark-button-base;
-    width: 34px;
-    height: 28px;
-    padding: 0;
-    line-height: 1;
+    color: var(--dsw-alias-label-primary, #141413);
     font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
+  }
+}
+
+.browser-dialog-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+
+  span {
+    overflow: hidden;
+    color: var(--dsw-alias-label-tertiary, #827d75);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
 .browser-dialog-body {
-  padding: 14px 18px 16px;
-  overflow: auto;
   flex: 1;
-  @include theme.ark-scrollbar;
+  padding: 16px 22px 20px;
+  overflow: auto;
+  @include dsh.scrollbar;
 }
 
-.gpt-model-dialog {
-  width: min(1240px, calc(100vw - 24px));
+@keyframes dsh-fade-in {
+  from {
+    opacity: 0;
+  }
 }
 
-.gpt-model-editor-dialog {
-  width: min(1080px, calc(100vw - 24px));
+@keyframes dsh-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
 }
 
-.gpt-model-header {
-  align-items: flex-start;
-}
-
-.gpt-model-header-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.gpt-model-header-actions .btn {
-  min-width: 84px;
-  height: 30px;
-  padding: 0 10px;
-  font-size: 11px;
-}
-
-.gpt-model-body {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.gpt-model-tools {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 8px;
-  align-items: center;
-}
-
-.gpt-model-tools input {
-  @include theme.ark-input-base;
-}
-
-.gpt-model-card-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.gpt-model-card {
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.03);
-  padding: 10px 12px;
-  @include theme.tech-grid(18px, 0.02);
-}
-
-.gpt-model-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.gpt-model-card-head label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-}
-
-.gpt-model-id {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.65);
-  font-family: theme.$font-mono;
-  word-break: break-all;
-}
-
-.gpt-model-card-actions {
-  margin-top: 6px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.gpt-model-card-actions .btn {
-  min-width: 110px;
-}
-
-.gpt-ref-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.gpt-ref-item {
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.02);
-  padding: 10px;
-}
-
-.gpt-ref-actions {
-  display: flex;
-  gap: 8px;
-  align-items: flex-end;
-  flex-wrap: wrap;
-}
-
-.gpt-expression-map-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.gpt-expression-map-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: center;
-}
-
-.gpt-expression-map-row input,
-.gpt-expression-map-row select {
-  @include theme.ark-input-base;
-  width: 100%;
+@media (prefers-reduced-motion: reduce) {
+  .settings-overlay,
+  .settings-panel,
+  .browser-overlay {
+    animation: none;
+  }
 }
 
 @media (max-width: 860px) {
   .settings-overlay {
     align-items: flex-start;
-    padding: calc(env(safe-area-inset-top) + 6px) 6px calc(env(safe-area-inset-bottom) + 6px);
+    padding: 8px;
   }
 
-  .settings-panel {
+  .settings-panel,
+  .browser-dialog {
     width: 100%;
-    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px);
-    clip-path: none;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
-  }
-
-  .settings-panel::before {
-    width: 40px;
+    max-height: calc(100dvh - 16px);
+    border-radius: var(--dsw-radius-lg, 16px);
   }
 
   .panel-main {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
     min-height: 0;
   }
 
   .panel-nav {
-    border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.16);
-    display: flex;
+    flex-direction: row;
     gap: 6px;
-    padding: 8px 10px;
+    padding: 8px 12px;
+    border-right: 0;
+    border-bottom: 0.5px solid var(--dsw-alias-border-l1, #eee8e0);
     overflow-x: auto;
     overflow-y: hidden;
-    @include theme.ark-scrollbar;
   }
 
   .nav-btn {
     flex: 0 0 auto;
-    width: 150px;
-    min-height: 42px;
-    padding: 6px 10px;
-    margin-bottom: 0;
-    grid-template-areas: 'idx label';
-    grid-template-columns: auto 1fr;
-    row-gap: 0;
-    align-items: center;
+    width: auto;
+    height: 34px;
+    padding: 0 12px;
   }
 
   .panel-body {
     min-height: 0;
-  }
-
-  .nav-index {
-    font-size: 16px;
-  }
-
-  .nav-label {
-    font-size: 12px;
-  }
-
-  .nav-sub {
-    display: none;
-  }
-
-  .browser-overlay {
-    align-items: flex-start;
-    padding: calc(env(safe-area-inset-top) + 6px) 6px calc(env(safe-area-inset-bottom) + 6px);
-  }
-
-  .browser-dialog {
-    width: 100%;
-    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px);
-    clip-path: none;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
-  }
-
-  .gpt-model-dialog,
-  .gpt-model-editor-dialog {
-    width: 100%;
-    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px);
-  }
-
-  .gpt-model-tools {
-    grid-template-columns: 1fr;
-  }
-
-  .gpt-expression-map-row {
-    grid-template-columns: 1fr;
+    padding: 16px 18px 20px;
   }
 
   .emotion-layout {
@@ -2980,9 +3055,7 @@ watch(
     position: sticky;
     top: 8px;
     z-index: 8;
-    margin-bottom: 8px;
-    padding: 8px 10px 10px;
-    background: rgba(0, 0, 0, 0.9);
+    padding: 10px 12px 12px;
   }
 
   .emotion-preview-header {
@@ -3006,30 +3079,38 @@ watch(
   .emotion-preview-controls .hint {
     display: none;
   }
+
+  .browser-overlay {
+    align-items: flex-start;
+    padding: 8px;
+  }
 }
 
+
 @media (max-width: 620px) {
-  .settings-overlay {
+  .settings-overlay,
+  .browser-overlay {
     align-items: stretch;
     padding: 0;
   }
 
-  .settings-panel {
+  .settings-panel,
+  .browser-dialog {
     width: 100vw;
     max-height: 100dvh;
-    border-left: none;
-    border-right: none;
+    border: 0;
+    border-radius: 0;
     box-shadow: none;
   }
 
   .panel-header {
-    padding: 10px 12px;
+    padding: 14px 16px 12px;
   }
 
   .header-title {
     h3 {
       font-size: 15px;
-      letter-spacing: 0.06em;
+      line-height: 22px;
     }
 
     p {
@@ -3038,37 +3119,30 @@ watch(
   }
 
   .panel-nav {
-    padding: 6px 8px;
+    gap: 4px;
+    padding: 6px 10px;
   }
 
   .nav-btn {
-    width: 126px;
-    min-height: 38px;
-    padding: 5px 8px;
+    height: 32px;
+    padding: 0 10px;
   }
 
-  .nav-index {
-    font-size: 14px;
+  .nav-icon {
+    width: 15px;
+    height: 15px;
   }
 
   .nav-label {
-    font-size: 11px;
-    letter-spacing: 0.04em;
-  }
-
-  .close-btn {
-    min-width: 66px;
-    height: 28px;
-    padding: 0 8px;
-    font-size: 11px;
-  }
-
-  .panel-footer {
-    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    font-size: 12.5px;
   }
 
   .panel-body {
-    padding: 8px 10px;
+    padding: 14px 14px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .panel-footer {
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
   }
 
   .form-row {
@@ -3095,8 +3169,13 @@ watch(
 
   .emotion-map-head,
   .emotion-map-row {
-    grid-template-columns: 56px 16px minmax(0, 1fr) minmax(0, 1fr) 42px;
+    grid-template-columns: 56px 16px minmax(0, 1fr) minmax(0, 1fr) 38px;
     gap: 6px;
+  }
+
+  .emotion-map-head {
+    padding: 8px;
+    font-size: 10px;
   }
 
   .emotion-map-row {
@@ -3107,48 +3186,33 @@ watch(
     font-size: 14px;
   }
 
-  .emotion-map-preview-btn {
-    width: 38px;
+  .btn.emotion-map-preview-btn {
+    width: 32px;
     height: 30px;
     font-size: 12px;
   }
 
-  .browser-overlay {
-    align-items: stretch;
-    padding: 0;
-  }
-
-  .browser-dialog {
-    width: 100vw;
-    max-height: 100dvh;
-    box-shadow: none;
-    clip-path: none;
-  }
-
-  .gpt-model-dialog,
-  .gpt-model-editor-dialog {
-    width: 100vw;
-    max-height: 100dvh;
-    box-shadow: none;
-    clip-path: none;
-  }
-
   .browser-dialog-header {
-    padding: 12px;
+    padding: 12px 14px;
+  }
+
+  .browser-dialog-heading span {
+    display: none;
   }
 
   .browser-dialog-body {
-    padding: 10px 12px 12px;
-  }
-
-  .gpt-model-header-actions {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .gpt-model-card-actions .btn {
-    min-width: 0;
-    flex: 1 1 120px;
+    padding: 12px 14px 16px;
   }
 }
+@media (max-width: 480px) {
+  /* 六个分区在 360px 宽屏里放不下图标版导航；收起图标后刚好能全部看见。 */
+  .nav-icon {
+    display: none;
+  }
+
+  .nav-btn {
+    padding: 0 9px;
+  }
+}
+
 </style>

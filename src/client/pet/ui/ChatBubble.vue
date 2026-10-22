@@ -381,48 +381,37 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@use './styles/theme-arknights.scss' as theme;
+@use './styles/theme-dsh.scss' as dsh;
 
 .chat-bubble {
   position: fixed;
   transform: translate(-50%, -100%);
   /* 定死宽度：父节点是零尺寸的浮层根，shrink-to-fit 会把气泡压成 min-width 一条竖线。 */
   width: min(320px, calc(100vw - 32px));
-  animation: bubble-in 0.22s ease-out;
+  animation: bubble-in 0.2s ease-out;
   z-index: 1300;
   pointer-events: none;
 }
 
 .bubble-content {
   position: relative;
-  background: rgba(14, 14, 14, 0.96);
-  color: theme.$ark-text-main;
-  border: 1px solid theme.$ark-accent-yellow;
-  padding: 9px 26px 10px 13px;
-  clip-path: polygon(
-    10px 0,
-    100% 0,
-    100% calc(100% - 10px),
-    calc(100% - 10px) 100%,
-    0 100%,
-    0 10px
-  );
-  font-size: 12px;
-  line-height: 1.5;
+  z-index: 0;
+  padding: 11px 32px 11px 14px;
+  border: 0.5px solid var(--dsw-alias-border-l2, #e6dfd8);
+  border-radius: var(--dsw-radius-lg, 16px);
+  background: var(--dsw-alias-bg-layer-2, #fffdf8);
+  color: var(--dsw-alias-label-primary, #141413);
+  font-size: 12.5px;
+  line-height: 1.6;
   word-break: break-word;
-  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.56);
-  font-family: theme.$font-cn;
+  box-shadow: var(
+    --dsw-elevation-prominent,
+    0 0 0 0.5px rgba(0, 0, 0, 0.12),
+    0 3px 8px rgba(0, 0, 0, 0.06),
+    0 0 20px rgba(0, 0, 0, 0.05)
+  );
+  @include dsh.font;
   pointer-events: auto;
-
-  &::after {
-    content: '';
-    position: absolute;
-    right: 22px;
-    bottom: -2px;
-    width: 30px;
-    height: 3px;
-    background: theme.$ark-accent-yellow;
-  }
 }
 
 .bubble-text {
@@ -430,81 +419,80 @@ onUnmounted(() => {
 }
 
 .cursor {
-  animation: blink 0.64s infinite;
   margin-left: 1px;
-  color: theme.$ark-accent-cyan;
+  color: var(--dsw-alias-brand-primary, #cc785c);
+  animation: blink 0.64s infinite;
 }
 
 .bubble-close {
   position: absolute;
+  top: 6px;
   right: 6px;
-  top: 5px;
-  width: 15px;
-  height: 15px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  line-height: 13px;
-  text-align: center;
-  cursor: pointer;
-  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
   padding: 0;
-  font-family: theme.$font-en;
+  border: 0;
+  border-radius: var(--dsw-radius-sm, 8px);
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary, #827d75);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
 
   &:hover {
-    background: theme.$ark-danger;
-    border-color: theme.$ark-danger;
+    background: var(--dsw-alias-interactive-bg-hover, rgba(0, 0, 0, 0.05));
+    color: var(--dsw-alias-label-primary, #141413);
+  }
+
+  &:focus-visible {
+    outline: 2px solid
+      color-mix(
+        in srgb,
+        var(--dsw-alias-state-business-primary, #cc785c) 55%,
+        transparent
+      );
+    outline-offset: 1px;
   }
 }
 
 .bubble-arrow {
-  width: 11px;
-  height: 11px;
-  background: rgba(14, 14, 14, 0.96);
-  border-left: 1px solid theme.$ark-accent-yellow;
-  border-bottom: 1px solid theme.$ark-accent-yellow;
-  transform: rotate(-45deg);
-  margin: 0 auto;
-  margin-top: -6px;
+  position: relative;
+  z-index: 1;
+  width: 12px;
+  height: 12px;
+  margin: -7px auto 0;
+  border-right: 0.5px solid var(--dsw-alias-border-l2, #e6dfd8);
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2, #e6dfd8);
+  background: var(--dsw-alias-bg-layer-2, #fffdf8);
+  transform: rotate(45deg);
 }
 
-@keyframes bubble-in {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(8px) scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0) scale(1);
-  }
-}
-
-@keyframes blink {
-  0%, 50% {
-    opacity: 1;
-  }
-  51%, 100% {
-    opacity: 0;
-  }
-}
-
-/* 工作状态：一行短句，宽度跟着文字走，不挡正文。 */
+/* 工作状态：DSH 小胶囊，不带尾巴。 */
 .chat-bubble.is-status {
   width: auto;
   max-width: min(240px, calc(100vw - 32px));
 }
 
 .bubble-content.is-status {
-  padding: 5px 12px 6px;
-  border-color: theme.$ark-accent-cyan;
-  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
+  padding: 6px 12px;
+  border-radius: 999px;
   font-size: 12px;
-  opacity: 0.94;
+  line-height: 1.5;
+  opacity: 0.96;
+  box-shadow: var(
+    --dsw-elevation-soft,
+    0 0 0 0.5px rgba(0, 0, 0, 0.12),
+    0 4px 16px rgba(0, 0, 0, 0.06)
+  );
+}
 
-  &::after {
-    width: 18px;
-    background: theme.$ark-accent-cyan;
-  }
+.chat-bubble.is-status .bubble-arrow {
+  display: none;
 }
 
 /* 卡片工作台引导：比吐槽气泡宽，内容可滚动，选项是一排按钮。 */
@@ -514,35 +502,44 @@ onUnmounted(() => {
 
 .bubble-content.is-guide {
   max-height: 55vh;
+  padding: 13px 14px;
   overflow-y: auto;
   overscroll-behavior: contain;
   pointer-events: auto;
+  @include dsh.scrollbar;
 }
 
 .guide-ack {
-  color: theme.$ark-text-sub;
+  color: var(--dsw-alias-label-secondary, #6c6a64);
   font-size: 12px;
 }
 
 .guide-question {
   margin-top: 2px;
+  color: var(--dsw-alias-label-primary, #141413);
   font-size: 13px;
   font-weight: 600;
-  line-height: 1.5;
+  line-height: 1.55;
+}
+
+.guide-index {
+  color: var(--dsw-alias-brand-primary, #cc785c);
+  font-weight: 600;
 }
 
 .guide-lead {
+  color: var(--dsw-alias-label-primary, #141413);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 .guide-hint,
 .guide-detail,
 .guide-note {
-  margin-top: 4px;
-  color: theme.$ark-text-sub;
+  margin-top: 5px;
+  color: var(--dsw-alias-label-tertiary, #827d75);
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 .guide-streaming {
@@ -554,29 +551,31 @@ onUnmounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .guide-option {
-  border: 1px solid rgba(255, 225, 0, 0.45);
+  appearance: none;
+  padding: 4px 10px;
+  border: 0.5px solid var(--dsw-alias-border-l2, #e6dfd8);
   border-radius: 999px;
-  padding: 3px 10px;
-  background: rgba(255, 225, 0, 0.08);
-  color: theme.$ark-text-main;
+  background: var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-3, #fff));
+  color: var(--dsw-alias-label-primary, #141413);
   font: inherit;
   font-size: 12px;
   line-height: 18px;
-  cursor: pointer;
   text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 
   b {
-    color: theme.$ark-accent-yellow;
     margin-right: 4px;
+    color: var(--dsw-alias-brand-primary, #cc785c);
   }
 
   &:hover:not(:disabled) {
-    border-color: theme.$ark-accent-yellow;
-    background: rgba(255, 225, 0, 0.18);
+    border-color: var(--dsw-alias-brand-primary, #cc785c);
+    color: var(--dsw-alias-brand-primary, #cc785c);
   }
 
   &.is-free {
@@ -584,17 +583,51 @@ onUnmounted(() => {
   }
 
   &.is-action {
-    background: theme.$ark-accent-yellow;
-    color: #141414;
+    border-color: var(--dsw-alias-brand-primary, #cc785c);
+    background: var(--dsw-alias-brand-primary, #cc785c);
+    color: var(--dsw-alias-brand-text, #fff);
 
     b {
-      color: #141414;
+      color: var(--dsw-alias-brand-text, #fff);
     }
   }
 
   &:disabled {
     opacity: 0.4;
     cursor: default;
+  }
+}
+
+@keyframes bubble-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-bubble {
+    animation: none;
+  }
+
+  .cursor {
+    animation: none;
   }
 }
 </style>

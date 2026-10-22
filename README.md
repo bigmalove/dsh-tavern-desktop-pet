@@ -8,7 +8,7 @@
 
 ![桌宠在 Tavern 里吐槽](docs/screenshot-main.png)
 
-设置面板共六页（模型 / Live2D / 吐槽 / 表情 / 朗读 / 关于），点右下角桌宠长按、或侧栏「桌宠」页都能打开：
+设置面板共六页（模型 / Live2D / 吐槽 / 表情 / 朗读 / 关于），点右下角桌宠长按、或侧栏「桌宠」页都能打开。面板、在线模型库、侧栏页、长按菜单和吐槽 / 状态气泡都使用 DSH 的设计令牌，会跟着浅色 / 深色与 Dream Skin 皮肤一起切换：
 
 ![设置面板](docs/screenshot-settings.png)
 
@@ -20,12 +20,12 @@
 | 侧栏「桌宠」面板（打开设置 / 逗一下 / 状态 / 挑吐槽模型） | 已验证 |
 | 设置面板（6 页：模型 / Live2D / 吐槽 / 表情 / 朗读 / 关于） | 已验证：逐个点开都有内容，模型页下拉列出真实通道与模型（实测 65 项） |
 | 输入框上方「逗一下」按钮 | 已验证 |
-| 长按菜单（CHAT / MOTION / MODEL / PERSONA / SETUP / CLOSE） | 已验证 |
+| 长按菜单（聊天 / 动作 / 换形象 / 吐槽人设 / 设置 / 关闭桌宠） | 已验证 |
 | 吐槽链路（读正文 → 宿主 → 模型 → 气泡 → 情绪表情） | 已验证：故事局点「逗一下」拿到 50 字回复，情绪标签 `生气` 驱动了表情 |
 | 没有卡的对局（写作 / 剧本） | 已验证：舞台接口拒绝后改按轮读正文 |
 | 自动朗读（走 Tavern 配音渠道） | 已接：`tavernUi.speak` + 情绪映射；试听会如实报「没渠道 / 已播放」，本机配音关闭时返回 false |
 | 上线/下线的清理（Vue 卸载、样式移除、全局垫片还原） | 已验证 |
-| 关闭桌宠（长按菜单 CLOSE / 设置里的「显示桌宠」） | 已接：关闭状态写进脚本变量，刷新后不再自动挂出；侧栏「桌宠」页或设置里可重新打开 |
+| 关闭桌宠（长按菜单「关闭桌宠」 / 设置里的「显示桌宠」） | 已接：关闭状态写进脚本变量，刷新后不再自动挂出；侧栏「桌宠」页或设置里可重新打开 |
 | 一轮写完自动吐槽 | 逻辑走单测 + 手动触发验证，未做「真实一轮」的端到端 |
 | 卡片工作台引导（念提问、选项按钮、折叠主区提问） | 已接 Tavern 第 6 版接口（`watchReply` / `registerReplyPresenter`）；解析器与状态机走单测，真实工作台待手动验证 |
 | 工作状态表情（思考 / 干活 / 等你回答 / 刚忙完 / 出错） | 已接 Tavern 第 7 版 `watchWorkStatus`；引导员或气泡在时不抢镜头，侧栏「桌宠」页显示当前状态 |
@@ -143,6 +143,7 @@ src/client/bridge/shims.js  酒馆全局垫片（toastr / SillyTavern / getVaria
 src/client/bridge/tavern.js 桌宠与 Tavern 之间唯一的桥（当前局、舞台、回合、宿主调用、朗读）
 src/client/bridge/actions.js React 侧操作 Vue 桌宠的函数指针
 src/client/pet/**           上游代码（live2d / ui / chat / core / db / utils）
+src/client/pet/ui/styles/theme-dsh.scss  设置界面的 DSH 主题令牌与控件 mixin
 src/host/index.mjs          宿主侧：tavern.handle 暴露的吐槽生成
 build.mjs                   vite + plugin-vue → classic CJS bundle，样式内联注入
 tests/packaging.test.mjs    产物形状 / 离线自足 / 元数据
@@ -159,8 +160,9 @@ tests/packaging.test.mjs    产物形状 / 离线自足 / 元数据
 - **手机 TTS 桥**：上游监听第三方「手机」扩展的 CustomEvent 来朗读手机消息，那些扩展在 Tavern 里不存在，删。
 - **Tamako 今日特选 / 骰子数据库参考**：数据源是酒馆的 Tamako Market 扩展（`#tamako-market-window` 的 DOM）与 AutoCardUpdater（`window.AutoCardUpdaterAPI`、消息上的 `TavernDB_ACU_*` 字段），Tavern 里两者都没有，勾了也只会打印「未读取到可用数据」。两个开关连同解析代码一起删。
 - **层级**：舞台 `10000 → 1200`、气泡 `10004 → 1300`、菜单 `10002 → 1400`、设置 `10001 → 1500`，压在 Tavern 的弹窗（2300）之下，不再盖住原生 UI。
+- **界面主题**：设置面板、在线模型库、侧栏「桌宠」页、长按菜单和吐槽 / 状态气泡全部改用 DSH 的 `--dsw-alias-*` 设计令牌（`src/client/pet/ui/styles/theme-dsh.scss`），不再套上游的 Arknights 深色终端皮肤；换肤 / 切深浅色时由 CSS 变量即时生效，不需要重载插件。长按菜单和聊天抽屉也换成了 DSH 的菜单 / 表单样式。
 - **默认尺寸**：`PET_SCALE 0.3 → 0.55`（280×360 的基准画面太小吃不住高分屏）。
-- **删除**：`utils/style-teleport.ts`（同窗口下不需要跨文档搬样式）、jQueryUI 拖拽依赖（落到上游自带的 pointer 拖拽回退）。
+- **删除**：`utils/style-teleport.ts`（同窗口下不需要跨文档搬样式）、jQueryUI 拖拽依赖（落到上游自带的 pointer 拖拽回退）、写死的 `theme-arknights.scss`（全部 UI 改用 DSH 令牌）。
 
 ## 已知问题
 

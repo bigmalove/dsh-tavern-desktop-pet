@@ -120,42 +120,52 @@ function handleClick() {
 </script>
 
 <style lang="scss" scoped>
-@use './styles/theme-arknights.scss' as theme;
+@use './styles/theme-dsh.scss' as dsh;
 
 .node-row {
   display: flex;
   align-items: center;
-  padding: 5px 8px;
-  cursor: pointer;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 12px;
   gap: 4px;
+  padding: 6px 10px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l1, #eee8e0);
+  color: var(--dsw-alias-label-secondary, #6c6a64);
+  font-size: 12px;
+  cursor: pointer;
   user-select: none;
-  transition: background 0.14s;
+  transition: background 0.14s ease, color 0.14s ease;
 
   &:hover {
-    background: rgba(255, 225, 0, 0.12);
+    background: var(--dsw-alias-interactive-bg-hover, rgba(0, 0, 0, 0.04));
+    color: var(--dsw-alias-label-primary, #141413);
   }
 
   &.is-model {
     .node-name {
-      color: theme.$ark-accent-cyan;
-      font-weight: 600;
+      color: var(--dsw-alias-brand-primary, #cc785c);
+      font-weight: 500;
     }
   }
 
   &.is-selected {
-    background: rgba(255, 225, 0, 0.2);
+    background: color-mix(
+      in srgb,
+      var(--dsw-alias-brand-primary, #cc785c) 14%,
+      transparent
+    );
+
+    .node-name {
+      color: var(--dsw-alias-label-primary, #141413);
+    }
   }
 }
 
 .expand-icon {
-  width: 14px;
-  font-size: 8px;
-  color: theme.$ark-text-sub;
-  transition: transform 0.2s;
   flex-shrink: 0;
+  width: 14px;
+  color: var(--dsw-alias-label-tertiary, #827d75);
+  font-size: 8px;
   text-align: center;
+  transition: transform 0.2s;
 
   &.expanded {
     transform: rotate(90deg);
@@ -167,62 +177,54 @@ function handleClick() {
 }
 
 .node-icon {
-  font-size: 13px;
   flex-shrink: 0;
+  font-size: 13px;
   line-height: 1;
 }
 
 .node-name {
-  color: #f1f1f1;
+  flex: 1;
   overflow: hidden;
+  color: var(--dsw-alias-label-primary, #141413);
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex: 1;
 }
 
 .node-spinner {
   display: inline-block;
+  flex-shrink: 0;
   width: 10px;
   height: 10px;
-  border: 1.5px solid #4d4d4d;
-  border-top-color: theme.$ark-accent-cyan;
+  margin-left: 4px;
+  border: 1.5px solid var(--dsw-alias-border-l2, #e6dfd8);
+  border-top-color: var(--dsw-alias-brand-primary, #cc785c);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  flex-shrink: 0;
-  margin-left: 4px;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .empty-hint {
+  padding: 4px 10px;
+  color: var(--dsw-alias-label-tertiary, #827d75);
   font-size: 11px;
-  color: theme.$ark-text-sub;
-  padding: 4px 8px;
 }
 
 .child-error {
+  padding: 4px 10px;
+  color: var(--dsw-alias-state-error-primary, #ec1313);
   font-size: 11px;
-  color: #ffb5af;
-  padding: 4px 8px;
 
   .retry-link {
-    @include theme.ark-button-base;
-    height: 22px;
+    @include dsh.button-base(26px);
     min-width: 56px;
-    padding: 0 8px;
     margin-left: 6px;
-    font-size: 10px;
-    border-color: rgba(0, 218, 194, 0.55);
-    color: #c5fff9;
-    cursor: pointer;
-
-    &:hover {
-      background: theme.$ark-accent-cyan;
-      border-color: theme.$ark-accent-cyan;
-      color: #000;
-    }
+    padding: 0 8px;
+    font-size: 11px;
   }
 }
 </style>

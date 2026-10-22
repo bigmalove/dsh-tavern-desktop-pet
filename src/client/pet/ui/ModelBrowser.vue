@@ -1,10 +1,5 @@
 <template>
   <div class="model-browser">
-    <div class="browser-header">
-      <span class="browser-title">在线模型库</span>
-      <span class="browser-hint">Eikanya/Live2d-model</span>
-    </div>
-
     <!-- 搜索框 -->
     <div class="search-box">
       <input
@@ -126,45 +121,22 @@ loadRoot();
 </script>
 
 <style lang="scss" scoped>
-@use './styles/theme-arknights.scss' as theme;
+@use './styles/theme-dsh.scss' as dsh;
 
 .model-browser {
   display: flex;
   flex-direction: column;
   height: 100%;
   max-height: 60vh;
-  color: theme.$ark-text-main;
-  font-family: theme.$font-cn;
-}
-
-.browser-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 0 10px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid rgba(255, 225, 0, 0.35);
-
-  .browser-title {
-    font-size: 14px;
-    font-family: theme.$font-en;
-    letter-spacing: 0.08em;
-    color: theme.$ark-accent-yellow;
-  }
-
-  .browser-hint {
-    font-size: 10px;
-    color: theme.$ark-text-sub;
-    letter-spacing: 0.08em;
-  }
+  color: var(--dsw-alias-label-primary, #141413);
+  @include dsh.font;
 }
 
 .search-box {
   margin-bottom: 10px;
 
   input {
-    @include theme.ark-input-base;
-    color: #fff;
+    @include dsh.input-base;
   }
 }
 
@@ -173,38 +145,37 @@ loadRoot();
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 10px;
-  background: rgba(255, 59, 48, 0.12);
-  border: 1px solid rgba(255, 59, 48, 0.4);
   margin-bottom: 10px;
+  padding: 9px 12px;
+  border: 0.5px solid
+    color-mix(in srgb, var(--dsw-alias-state-error-primary, #ec1313) 36%, transparent);
+  border-radius: var(--dsw-radius-md, 12px);
+  background: color-mix(
+    in srgb,
+    var(--dsw-alias-state-error-primary, #ec1313) 8%,
+    transparent
+  );
+  color: var(--dsw-alias-state-error-primary, #ec1313);
   font-size: 12px;
-  color: #ffc9c5;
+  line-height: 1.5;
 
   .retry-btn {
-    @include theme.ark-button-base;
-    min-width: 72px;
-    height: 26px;
-    padding: 0 8px;
-    font-size: 11px;
-    border-color: rgba(255, 59, 48, 0.6);
-    color: #ffc9c5;
-
-    &:hover {
-      background: theme.$ark-danger;
-      border-color: theme.$ark-danger;
-      color: #fff;
-    }
+    @include dsh.button-base(28px);
+    flex: none;
+    padding: 0 10px;
+    font-size: 12px;
   }
 }
 
 .tree-container {
   flex: 1;
-  overflow-y: auto;
   min-height: 150px;
-  padding: 4px 0 6px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.3);
-  @include theme.ark-scrollbar;
+  padding: 4px 0;
+  overflow-y: auto;
+  border: 0.5px solid var(--dsw-alias-border-l2, #e6dfd8);
+  border-radius: var(--dsw-radius-md, 12px);
+  background: var(--dsw-alias-bg-layer-1, #f5f0e8);
+  @include dsh.scrollbar;
 
   &:empty {
     border-style: dashed;
@@ -215,53 +186,55 @@ loadRoot();
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
-  color: theme.$ark-text-sub;
-  font-size: 13px;
   gap: 8px;
+  padding: 24px;
+  color: var(--dsw-alias-label-secondary, #6c6a64);
+  font-size: 13px;
 }
 
 .spinner {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 2px solid #4d4d4d;
-  border-top-color: theme.$ark-accent-cyan;
+  border: 2px solid var(--dsw-alias-border-l2, #e6dfd8);
+  border-top-color: var(--dsw-alias-brand-primary, #cc785c);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .empty-state {
-  text-align: center;
   padding: 24px;
-  color: theme.$ark-text-sub;
+  color: var(--dsw-alias-label-tertiary, #827d75);
   font-size: 13px;
+  text-align: center;
 }
 
 .browser-footer {
-  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  margin-top: 12px;
   padding-top: 12px;
-  margin-top: 10px;
+  border-top: 0.5px solid var(--dsw-alias-border-l1, #eee8e0);
 
   .selected-info {
-    font-size: 12px;
-    color: #d5d5d5;
     margin-bottom: 8px;
     overflow: hidden;
+    color: var(--dsw-alias-label-secondary, #6c6a64);
+    font-size: 12px;
     text-overflow: ellipsis;
     white-space: nowrap;
 
     .selected-path {
-      color: theme.$ark-accent-yellow;
+      color: var(--dsw-alias-brand-primary, #cc785c);
       font-weight: 600;
     }
 
     .no-selection {
-      color: theme.$ark-text-sub;
+      color: var(--dsw-alias-label-tertiary, #827d75);
     }
   }
 
@@ -273,38 +246,25 @@ loadRoot();
 }
 
 .btn {
-  @include theme.ark-button-base;
+  @include dsh.button-base(32px);
   min-width: 90px;
-  height: 32px;
   padding: 0 14px;
   font-size: 12px;
 
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
   &.btn-primary {
-    background: theme.$ark-accent-yellow;
-    color: #000;
-    border-color: theme.$ark-accent-yellow;
+    border-color: var(--dsw-alias-brand-primary, #cc785c);
+    background: var(--dsw-alias-brand-primary, #cc785c);
+    color: var(--dsw-alias-brand-text, #fff);
 
     &:hover:not(:disabled) {
-      background: #fff26e;
-      border-color: #fff26e;
+      border-color: var(--dsw-alias-button-primary-hover, #a9583e);
+      background: var(--dsw-alias-button-primary-hover, #a9583e);
+      color: var(--dsw-alias-brand-text, #fff);
     }
   }
 
   &.btn-secondary {
-    background: rgba(0, 218, 194, 0.08);
-    border-color: rgba(0, 218, 194, 0.55);
-    color: #c5fff9;
-
-    &:hover {
-      background: theme.$ark-accent-cyan;
-      border-color: theme.$ark-accent-cyan;
-      color: #000;
-    }
+    background: var(--dsw-alias-bg-layer-3, #fff);
   }
 }
 </style>

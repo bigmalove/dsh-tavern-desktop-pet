@@ -42,24 +42,39 @@ const ROOT_ID = 'desktop-pet-root'
 const ROOT_STYLE = `
 #${ROOT_ID}{position:fixed;left:0;top:0;width:0;height:0;overflow:visible;z-index:1200}
 #${ROOT_ID} *{box-sizing:border-box}
+/* 设置/模型库是覆盖整个视口的浮层，但根节点自己是一个 stacking context，
+   舞台里的桌宠又和它同级；打开浮层时把整个根节点抬到桌宠之上。 */
+#${ROOT_ID}:has(.chat-bubble){z-index:1300}
+#${ROOT_ID}:has(.menu-overlay){z-index:1400}
+#${ROOT_ID}:has(.settings-overlay),#${ROOT_ID}:has(.browser-overlay){z-index:1600}
 `
 
+// 侧栏「桌宠」页：只用 DSH 的设计令牌，跟原生设置面板一样随皮肤 / 深浅色切换。
 const PANEL_CSS = `
-.pet-panel{display:flex;flex-direction:column;gap:10px;padding:12px;font:13px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;
-  color:var(--color-text-primary,#1c1c1a)}
-.pet-panel-desc{color:var(--color-text-secondary,#5f5e5a);font-size:12px}
+.pet-panel{display:flex;flex-direction:column;gap:10px;padding:2px;font-size:13px;line-height:1.6;
+  font-family:var(--dsw-font-family,system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif);
+  color:var(--dsw-alias-label-primary,#141413)}
+.pet-panel-desc{color:var(--dsw-alias-label-secondary,#6c6a64);font-size:12.5px;line-height:1.6}
 .pet-panel-row{display:flex;gap:8px;flex-wrap:wrap}
-.pet-panel button{padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;
-  border:1px solid var(--color-border-secondary,rgba(0,0,0,.18));background:var(--color-background-secondary,#f5f5f3);
-  color:var(--color-text-primary,#1c1c1a)}
-.pet-panel button:hover{border-color:var(--color-border-primary,rgba(0,0,0,.4))}
-.pet-panel-field{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--color-text-secondary,#5f5e5a)}
-.pet-panel-field select{width:100%;padding:5px 8px;border-radius:8px;font-size:12px;
-  border:1px solid var(--color-border-secondary,rgba(0,0,0,.18));background:var(--color-background-primary,#fff);
-  color:var(--color-text-primary,#1c1c1a)}
-.pet-panel-hint{margin-top:4px;font-size:12px;color:var(--color-text-tertiary,#888)}
-.pet-panel-check{display:flex;gap:6px;align-items:flex-start;font-size:12px;line-height:1.5;color:var(--color-text-secondary,#5f5e5a);cursor:pointer}
-.pet-panel-check input{margin:2px 0 0}
+.pet-panel button{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 14px;
+  border-radius:var(--dsw-radius-md,12px);cursor:pointer;font:inherit;font-size:12.5px;font-weight:500;
+  border:0.5px solid var(--dsw-alias-border-l3,rgba(0,0,0,.12));background:var(--dsw-alias-bg-layer-3,#fff);
+  color:var(--dsw-alias-label-primary,#141413);
+  transition:background .15s ease,border-color .15s ease,color .15s ease}
+.pet-panel button:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(0,0,0,.05));
+  border-color:var(--dsw-alias-border-l2,#e6dfd8)}
+.pet-panel button:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#cc785c);outline-offset:2px}
+.pet-panel-field{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--dsw-alias-label-tertiary,#827d75)}
+.pet-panel-field>span{font-size:13px;font-weight:500;color:var(--dsw-alias-label-primary,#141413)}
+.pet-panel-field select{width:100%;height:34px;padding:0 10px;border-radius:var(--dsw-radius-md,12px);
+  font:inherit;font-size:13px;border:0.5px solid var(--dsw-alias-border-l4,rgba(0,0,0,.16));
+  background:var(--dsw-specific-input-major,#fff);color:var(--dsw-alias-label-primary,#141413)}
+.pet-panel-field select:focus-visible{outline:none;border-color:var(--dsw-alias-state-business-primary,#cc785c);
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--dsw-alias-state-business-primary,#cc785c) 22%,transparent)}
+.pet-panel-hint{margin-top:2px;font-size:12px;line-height:1.6;color:var(--dsw-alias-label-tertiary,#827d75)}
+.pet-panel-check{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;line-height:1.5;
+  color:var(--dsw-alias-label-secondary,#6c6a64);cursor:pointer}
+.pet-panel-check input{flex:none;width:16px;height:16px;margin:1px 0 0;accent-color:var(--dsw-alias-brand-primary,#cc785c)}
 .pet-guide-dock-host{width:100%;min-width:0}
 `
 
@@ -335,7 +350,7 @@ export function apply(ctx) {
   console.log('[dsh-tavern-desktop-pet] 已挂载', { gameId: gameId || '(未打开任何局)' })
   if (typeof window !== 'undefined') {
     window.__dshTavernPetDebug = {
-      version: '0.4.0',
+      version: '0.5.0',
       guide: () => guide.getState(),
       talking: () => Live2DManager.isTalking(),
       mouth: () => Live2DManager._mouthCurrentValue,

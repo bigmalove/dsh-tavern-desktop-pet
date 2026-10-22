@@ -41,8 +41,24 @@
     <div v-if="showModelBrowser" class="browser-overlay" @click.self="showModelBrowser = false">
       <div class="browser-dialog">
         <div class="browser-dialog-header">
-          <h3>在线模型库</h3>
-          <button class="close-btn" @click="showModelBrowser = false">×</button>
+          <div class="browser-dialog-heading">
+            <h3>在线模型库</h3>
+            <span>Eikanya/Live2d-model</span>
+          </div>
+          <button class="close-btn" type="button" aria-label="关闭在线模型库" @click="showModelBrowser = false">
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
         </div>
         <div class="browser-dialog-body">
           <ModelBrowser
@@ -1223,75 +1239,122 @@ onUnmounted(() => {
 });
 </script>
 <style lang="scss" scoped>
-@use './styles/theme-arknights.scss' as theme;
+@use './styles/theme-dsh.scss' as dsh;
 
+/* 长按菜单里的「在线模型库」：外观和设置页里的模型库保持一致，
+   并跟随 DSH 的深浅色 / 皮肤令牌。 */
 .browser-overlay {
-  @include theme.overlay-backdrop(1520, 0.8);
-  padding: 12px;
+  @include dsh.overlay(1520);
+  padding: 16px;
   box-sizing: border-box;
   overflow: auto;
+  animation: dsh-fade-in 0.18s ease-out;
 }
 
 .browser-dialog {
-  width: min(980px, calc(100vw - 24px));
-  max-height: calc(100dvh - 24px);
+  width: min(980px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  color: theme.$ark-text-main;
-  background: theme.$ark-base;
-  font-family: theme.$font-cn;
-  @include theme.tech-panel(theme.$ark-accent-yellow);
-  @include theme.tech-grid(22px, 0.03);
+  @include dsh.surface();
 }
 
 .browser-dialog-header {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 18px;
-  border-bottom: 1px solid rgba(255, 225, 0, 0.36);
-  background: rgba(0, 0, 0, 0.28);
+  padding: 18px 22px 14px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l1, #eee8e0);
 
   h3 {
     margin: 0;
-    font-family: theme.$font-en;
-    font-size: 15px;
-    letter-spacing: 0.08em;
+    color: var(--dsw-alias-label-primary, #141413);
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
   }
 
   .close-btn {
-    @include theme.ark-button-base;
-    width: 34px;
-    height: 28px;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
     padding: 0;
+    border: 0;
+    border-radius: var(--dsw-radius-sm, 8px);
+    background: transparent;
+    color: var(--dsw-alias-label-secondary, #6c6a64);
+    font-size: 18px;
     line-height: 1;
-    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      background: var(--dsw-alias-interactive-bg-hover, rgba(0, 0, 0, 0.05));
+      color: var(--dsw-alias-label-primary, #141413);
+    }
+
+    &:focus-visible {
+      outline: 2px solid
+        color-mix(
+          in srgb,
+          var(--dsw-alias-state-business-primary, #cc785c) 55%,
+          transparent
+        );
+      outline-offset: 2px;
+    }
+  }
+}
+
+.browser-dialog-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+
+  span {
+    overflow: hidden;
+    color: var(--dsw-alias-label-tertiary, #827d75);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
 .browser-dialog-body {
-  padding: 14px 18px 16px;
-  overflow: auto;
   flex: 1;
-  @include theme.ark-scrollbar;
+  padding: 16px 22px 20px;
+  overflow: auto;
+  @include dsh.scrollbar;
+}
+
+@keyframes dsh-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .browser-overlay {
+    animation: none;
+  }
 }
 
 @media (max-width: 860px) {
   .browser-overlay {
     align-items: flex-start;
-    padding:
-      calc(env(safe-area-inset-top) + 6px)
-      6px
-      calc(env(safe-area-inset-bottom) + 6px);
+    padding: 8px;
   }
 
   .browser-dialog {
     width: 100%;
-    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px);
-    clip-path: none;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
+    max-height: calc(100dvh - 16px);
+    border-radius: var(--dsw-radius-lg, 16px);
   }
 }
 
@@ -1304,18 +1367,21 @@ onUnmounted(() => {
   .browser-dialog {
     width: 100vw;
     max-height: 100dvh;
+    border: 0;
+    border-radius: 0;
     box-shadow: none;
-    clip-path: none;
-    border-left: none;
-    border-right: none;
   }
 
   .browser-dialog-header {
-    padding: 12px;
+    padding: 12px 14px;
+  }
+
+  .browser-dialog-heading span {
+    display: none;
   }
 
   .browser-dialog-body {
-    padding: 10px 12px 12px;
+    padding: 12px 14px 16px;
   }
 }
 </style>
