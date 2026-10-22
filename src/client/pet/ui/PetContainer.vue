@@ -108,6 +108,8 @@ let stopWorkStatus: (() => void) | null = null;
 let stopWorkGame: (() => void) | null = null;
 let workStatus: { state?: string; tool?: string } | null = null;
 let lastWorkFace = '';
+let lastWorkState = '';
+let workStatusSerial = 0;
 // 停靠区接管时，固定气泡让位，避免同一句话显示两遍。
 const guideBubble = computed(() => {
   const state = guideState.value;
@@ -164,24 +166,55 @@ function applyEmotionToLive2D(tag: EmotionTag): boolean {
   return applyEmotionWithConfigs(tag, settings.value.emotionConfigs);
 }
 
+function applyWorkStatusFace(face: string): void {
+  const serial = ++workStatusSerial;
+  const attempt = (left: number) => {
+    if (serial !== workStatusSerial || petClosed) return;
+    if (!Live2DManager.model) {
+      // 模型还在加载（或刚切模型）：等一会儿再试，别把这次状态丢掉。
+      if (left > 0) window.setTimeout(() => attempt(left - 1), 1200);
+      return;
+    }
+    if (!applyEmotionToLive2D(face as EmotionTag)) {
+      // 模型没有这组表情/动作：至少动一下，别让桌宠在生成时像块石头。
+      Live2DManager.playRandomAnimation();
+    }
+  };
+  attempt(8);
+}
+
 function applyWorkStatus(status: any): void {
   workStatus = status && typeof status === 'object' ? status : null;
   if (!workStatus) return;
+  const state = String(workStatus.state || '');
+  if (state !== lastWorkState) {
+    lastWorkState = state;
+    log('工作状态 →', state, workStatus.tool || '');
+  }
+  const bubbleVisible = Boolean(String(bubbleText.value || '').trim());
+  if (state === 'idle') {
+    lastWorkFace = '';
+    // 忙完了回到默认表情；引导/气泡在时不动，它们自己会收尾。
+    if (!guideActive.value && !bubbleVisible) {
+      workStatusSerial++;
+      applyEmotionToLive2D('默认');
+    }
+    return;
+  }
   if (
     !shouldApplyWorkStatusFace({
       status: workStatus,
       guideActive: guideActive.value,
-      bubbleVisible: Boolean(String(bubbleText.value || '').trim()),
+      bubbleVisible: bubbleVisible,
     })
   ) {
     lastWorkFace = '';
     return;
   }
-  const face = faceForWorkStatus(workStatus.state);
+  const face = faceForWorkStatus(state);
   if (!face || face === lastWorkFace) return;
   lastWorkFace = face;
-  // 表情没匹配上（模型缺这组表情）就清掉记录，下一次状态变化再试。
-  if (!applyEmotionToLive2D(face as EmotionTag)) lastWorkFace = '';
+  applyWorkStatusFace(face);
 }
 
 function bindWorkStatus(): void {
@@ -191,13 +224,16 @@ function bindWorkStatus(): void {
   const gameId = currentGameId();
   if (!gameId) return;
   stopWorkStatus = watchWorkStatus(gameId, applyWorkStatus);
+  log('已订阅工作状态', gameId);
 }
 
 function stopWorkStatusWatch(): void {
   stopWorkStatus?.();
   stopWorkStatus = null;
+  workStatusSerial++;
   workStatus = null;
   lastWorkFace = '';
+  lastWorkState = '';
 }
 
 watch(showSettings, (visible) => {

@@ -376,7 +376,12 @@ export const PLUGIN_NAME = 'dsh-tavern-desktop-pet'
  */
 export function watchWorkStatus(gameId, listener) {
   const id = String(gameId || '')
-  if (!id || !state.tavernUi || typeof state.tavernUi.watchWorkStatus !== 'function') return () => {}
+  if (!id || !state.tavernUi) return () => {}
+  if (typeof state.tavernUi.watchWorkStatus !== 'function') {
+    // 旧版 Tavern（插件接口 < 7）没有这个接口：说清楚，别让「生成时没反应」看起来像桌宠坏了。
+    warn('Tavern 没有 watchWorkStatus（需要插件接口第 7 版），桌宠不会跟生成状态换表情')
+    return () => {}
+  }
   try {
     // 自己的回调出错不该冒到 Tavern 的插件接口里：只记一条日志，状态照常收。
     const stop = state.tavernUi.watchWorkStatus(id, (status) => {
