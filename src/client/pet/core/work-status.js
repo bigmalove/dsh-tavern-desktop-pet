@@ -31,32 +31,98 @@ export function faceForWorkStatus(state) {
   return Object.prototype.hasOwnProperty.call(WORK_STATUS_FACES, key) ? WORK_STATUS_FACES[key] : '';
 }
 
-/** 干活时按工具说一句更具体的；没登记的工具回落「干活中…」。 */
-const WORK_STATUS_TOOL_BUBBLES = Object.freeze({
-  ask_user_question: '等你回答…',
-  tavern_update_card: '写进卡里…',
-  tavern_validate_card: '检查格式…',
-  tavern_copy_card: '复制一份…',
+// 每种状态都准备几句，出状态时随机挑一句；同一次状态里不换，免得一句话闪来闪去。
+const THINKING_LINES = Object.freeze([
+  '生成中…',
+  '让我想想…',
+  '正在编故事…',
+  '组织语言中…',
+  '别急，在写了…',
+  '正在酝酿…',
+  '脑子转起来了…',
+]);
+
+const WORKING_LINES = Object.freeze([
+  '干活中…',
+  '忙起来了…',
+  '手上有点活…',
+  '正在处理…',
+  '稍等，在办…',
+  '这步有点费劲…',
+]);
+
+const WAITING_LINES = Object.freeze([
+  '等你回答…',
+  '想听听你的…',
+  '轮到你了…',
+  '在等你的答复…',
+  '你说，我听着…',
+]);
+
+const SUCCESS_LINES = Object.freeze([
+  '写完了！',
+  '这轮搞定！',
+  '完事收工～',
+  '新鲜出炉！',
+  '写好啦。',
+  '这轮结束！',
+]);
+
+const ERROR_LINES = Object.freeze([
+  '出错了…',
+  '哎呀，翻车了…',
+  '这轮没跑通…',
+  '卡住了…',
+  '出了点问题…',
+]);
+
+const SETTLEMENT_LINES = Object.freeze([
+  '后台结算中…',
+  '正在算这轮的账…',
+  '更新状态中…',
+  '对一下账…',
+]);
+
+/** 干活时按工具说一句更具体的；没登记的工具回落 WORKING_LINES。 */
+const WORK_STATUS_TOOL_LINES = Object.freeze({
+  ask_user_question: WAITING_LINES,
+  tavern_update_card: Object.freeze(['写进卡里…', '正在改卡…', '把这段记进卡里…', '落笔到卡上…']),
+  tavern_validate_card: Object.freeze(['检查格式…', '看看有没有写歪…', '校验中…']),
+  tavern_copy_card: Object.freeze(['复制一份…', '正在备份…']),
 });
 
 /**
- * 状态 → 桌宠头顶的气泡短句：生成中 / 干活中 / 等你回答 / 写完了 / 出错了。
- * 比面板文案短，一眼能看完；idle 返回空串（气泡收起）。
+ * 状态 → 这一类的候选短句。idle 与未知状态返回空数组（气泡收起）。
+ * 返回的是冻结数组，调用方不要改。
  */
-export function bubbleForWorkStatus(status) {
+export function bubblesForWorkStatus(status) {
   const state = String((status && status.state) || '').trim();
-  if (state === 'thinking') return '生成中…';
+  if (state === 'thinking') return THINKING_LINES;
   if (state === 'working') {
-    if (status.role === 'settlement') return '后台结算中…';
+    if (status.role === 'settlement') return SETTLEMENT_LINES;
     const tool = typeof status.tool === 'string' ? status.tool.trim() : '';
-    return Object.prototype.hasOwnProperty.call(WORK_STATUS_TOOL_BUBBLES, tool)
-      ? WORK_STATUS_TOOL_BUBBLES[tool]
-      : '干活中…';
+    return Object.prototype.hasOwnProperty.call(WORK_STATUS_TOOL_LINES, tool)
+      ? WORK_STATUS_TOOL_LINES[tool]
+      : WORKING_LINES;
   }
-  if (state === 'waiting') return '等你回答…';
-  if (state === 'success') return '写完了！';
-  if (state === 'error') return '出错了…';
-  return '';
+  if (state === 'waiting') return WAITING_LINES;
+  if (state === 'success') return SUCCESS_LINES;
+  if (state === 'error') return ERROR_LINES;
+  return [];
+}
+
+/**
+ * 从候选里挑一句；尽量避开上一句。`random` 可注入，单测用。
+ * 一次状态只挑一次（由调用方在状态/工具变化时调用），不要在每次渲染里调。
+ */
+export function pickBubbleForWorkStatus(status, previous = '', random = Math.random) {
+  const lines = bubblesForWorkStatus(status);
+  if (lines.length === 0) return '';
+  const usable = lines.length > 1 ? lines.filter((line) => line !== previous) : lines;
+  const pool = usable.length > 0 ? usable : lines;
+  const roll = typeof random === 'function' ? Number(random()) : 0;
+  const index = Math.min(pool.length - 1, Math.max(0, Math.floor((Number.isFinite(roll) ? roll : 0) * pool.length)));
+  return pool[index];
 }
 
 /** 状态 → 面板文案；干活时把工具名附上，便于确认状态是从哪来的。 */

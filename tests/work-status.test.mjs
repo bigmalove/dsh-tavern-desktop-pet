@@ -2,9 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  bubbleForWorkStatus,
+  bubblesForWorkStatus,
   faceForWorkStatus,
   labelForWorkStatus,
+  pickBubbleForWorkStatus,
   shouldApplyWorkStatusFace,
 } from '../src/client/pet/core/work-status.js';
 
@@ -40,15 +41,26 @@ test('工作状态的表情让位规则：引导员在、气泡在、idle 都不
   assert.equal(shouldApplyWorkStatusFace(null), false);
 });
 
-test('工作状态 → 气泡短句：生成中、等你回答、写完了、出错了；干活时认工具', () => {
-  assert.equal(bubbleForWorkStatus({ state: 'thinking' }), '生成中…');
-  assert.equal(bubbleForWorkStatus({ state: 'working' }), '干活中…');
-  assert.equal(bubbleForWorkStatus({ state: 'working', tool: 'tavern_update_card' }), '写进卡里…');
-  assert.equal(bubbleForWorkStatus({ state: 'working', tool: 'ask_user_question' }), '等你回答…');
-  assert.equal(bubbleForWorkStatus({ state: 'working', role: 'settlement' }), '后台结算中…');
-  assert.equal(bubbleForWorkStatus({ state: 'waiting' }), '等你回答…');
-  assert.equal(bubbleForWorkStatus({ state: 'success' }), '写完了！');
-  assert.equal(bubbleForWorkStatus({ state: 'error' }), '出错了…');
-  assert.equal(bubbleForWorkStatus({ state: 'idle' }), '');
-  assert.equal(bubbleForWorkStatus(null), '');
+test('工作状态 → 气泡短句：每类都有多句，工具/结算优先，挑的时候避开上一句', () => {
+  assert.ok(bubblesForWorkStatus({ state: 'thinking' }).length >= 3);
+  assert.ok(bubblesForWorkStatus({ state: 'thinking' }).includes('生成中…'));
+  assert.ok(bubblesForWorkStatus({ state: 'working' }).includes('干活中…'));
+  assert.ok(bubblesForWorkStatus({ state: 'working', role: 'settlement' }).includes('后台结算中…'));
+  assert.ok(bubblesForWorkStatus({ state: 'working', tool: 'tavern_update_card' }).includes('写进卡里…'));
+  assert.ok(bubblesForWorkStatus({ state: 'waiting' }).includes('等你回答…'));
+  assert.ok(bubblesForWorkStatus({ state: 'success' }).includes('写完了！'));
+  assert.ok(bubblesForWorkStatus({ state: 'error' }).includes('出错了…'));
+  assert.deepEqual(bubblesForWorkStatus({ state: 'idle' }), []);
+  assert.deepEqual(bubblesForWorkStatus(null), []);
+
+  const thinking = bubblesForWorkStatus({ state: 'thinking' });
+  assert.equal(pickBubbleForWorkStatus({ state: 'thinking' }, '', () => 0), thinking[0]);
+  assert.equal(pickBubbleForWorkStatus({ state: 'thinking' }, thinking[0], () => 0), thinking[1], '避开上一句');
+  assert.equal(pickBubbleForWorkStatus({ state: 'thinking' }, '', () => 0.999), thinking.at(-1));
+  assert.equal(pickBubbleForWorkStatus({ state: 'idle' }, '', () => 0), '');
+  assert.equal(pickBubbleForWorkStatus(null, '', () => 0), '');
+  // random 越小越靠前；单句池也能挑。
+  assert.ok(bubblesForWorkStatus({ state: 'working', tool: 'tavern_copy_card' }).includes(
+    pickBubbleForWorkStatus({ state: 'working', tool: 'tavern_copy_card' }, '', () => 0),
+  ));
 });

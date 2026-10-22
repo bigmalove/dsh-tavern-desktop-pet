@@ -78,7 +78,7 @@ import { parseEmotionCotText } from '../chat/emotion-cot';
 import { ChatMonitor } from '../chat/monitor';
 import { DEFAULTS, LOCAL_LIVE2D_MODEL_PATH_PREFIX, type EmotionTag } from '../core/constants';
 import { useSettingsStore } from '../core/settings';
-import { bubbleForWorkStatus, faceForWorkStatus, labelForWorkStatus, shouldApplyWorkStatusFace } from '../core/work-status';
+import { faceForWorkStatus, labelForWorkStatus, pickBubbleForWorkStatus, shouldApplyWorkStatusFace } from '../core/work-status';
 import { useUiStore } from '../core/ui';
 import { hasLive2DModel } from '../db/live2d-models';
 import { Live2DManager, type ModelLoadProgress } from '../live2d/manager';
@@ -113,8 +113,11 @@ const guideActive = computed(() => Boolean(guideState.value && guideState.value.
 let stopWorkStatus: (() => void) | null = null;
 let stopWorkGame: (() => void) | null = null;
 const workStatus = ref<{ state?: string; tool?: string; role?: string } | null>(null);
+const statusBubbleWanted = ref('');
 let lastWorkFace = '';
 let lastWorkState = '';
+let lastWorkBubbleKey = '';
+let lastBubbleLine = '';
 let workStatusSerial = 0;
 // 停靠区接管时，固定气泡让位，避免同一句话显示两遍。
 const guideBubble = computed(() => {
@@ -141,7 +144,7 @@ const guideChoiceDisabled = computed(() => Boolean(guideState.value?.choiceDisab
 // 引导员和吐槽气泡优先；它们在时这条让位，免得两个气泡叠在一起。
 const statusBubbleText = computed(() => {
   if (guideActive.value || guideBubble.value || String(bubbleText.value || '').trim()) return '';
-  return bubbleForWorkStatus(workStatus.value);
+  return statusBubbleWanted.value;
 });
 
 function onGuideChoose(option: { key?: string; label: string; freeform?: boolean }) {
@@ -199,11 +202,28 @@ function applyWorkStatusFace(face: string): void {
 function applyWorkStatus(next: any): void {
   const status = next && typeof next === 'object' ? next : null;
   workStatus.value = status;
-  if (!status) return;
+  if (!status) {
+    statusBubbleWanted.value = '';
+    lastWorkBubbleKey = '';
+    return;
+  }
   const state = String(status.state || '');
   if (state !== lastWorkState) {
     lastWorkState = state;
     log('工作状态 →', state, status.tool || '');
+  }
+  // 一次状态（或工具/结算阶段）只挑一句，状态内不来回换。
+  const bubbleKey = state + '|' + String(status.tool || '') + '|' + String(status.role || '');
+  if (state === 'idle') {
+    statusBubbleWanted.value = '';
+    lastWorkBubbleKey = '';
+  } else if (bubbleKey !== lastWorkBubbleKey) {
+    lastWorkBubbleKey = bubbleKey;
+    const line = pickBubbleForWorkStatus(status, lastBubbleLine);
+    if (line) {
+      lastBubbleLine = line;
+      statusBubbleWanted.value = line;
+    }
   }
   const bubbleVisible = Boolean(String(bubbleText.value || '').trim());
   if (state === 'idle') {
@@ -246,8 +266,11 @@ function stopWorkStatusWatch(): void {
   stopWorkStatus = null;
   workStatusSerial++;
   workStatus.value = null;
+  statusBubbleWanted.value = '';
   lastWorkFace = '';
   lastWorkState = '';
+  lastWorkBubbleKey = '';
+  lastBubbleLine = '';
 }
 
 watch(showSettings, (visible) => {
