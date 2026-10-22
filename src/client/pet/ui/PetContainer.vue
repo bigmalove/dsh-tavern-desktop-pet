@@ -67,12 +67,11 @@ import { Commentator } from '../chat/commentator';
 import { parseEmotionCotText } from '../chat/emotion-cot';
 import { ChatMonitor } from '../chat/monitor';
 import { DEFAULTS, LOCAL_LIVE2D_MODEL_PATH_PREFIX, type EmotionTag } from '../core/constants';
-import { getEmotionConfigByTag } from '../core/emotion';
 import { useSettingsStore } from '../core/settings';
 import { useUiStore } from '../core/ui';
 import { hasLive2DModel } from '../db/live2d-models';
 import { Live2DManager, type ModelLoadProgress } from '../live2d/manager';
-import { resolveLive2DExpression, resolveLive2DMotion } from '../live2d/expression-motion';
+import { applyEmotionToLive2D as applyEmotionWithConfigs } from '../live2d/emotion-apply';
 import { Live2DStage } from '../live2d/stage';
 import type { GestureEvent } from '../utils/gesture-recognizer';
 import { error as logError, log } from '../utils/dom';
@@ -150,39 +149,7 @@ function getTopWindow(): Window {
 }
 
 function applyEmotionToLive2D(tag: EmotionTag): boolean {
-  try {
-    const model = Live2DManager.model as any;
-    if (!model) return false;
-
-    let applied = false;
-
-    const cfg = getEmotionConfigByTag(tag, settings.value.emotionConfigs);
-    const expressionResolved = resolveLive2DExpression(model, tag, cfg?.live2dExpression);
-    if (expressionResolved?.type === 'native') {
-      Live2DManager.playExpression(expressionResolved.name);
-      applied = true;
-    } else if (expressionResolved?.type === 'builtin') {
-      if (Live2DManager.applyBuiltinExpression(expressionResolved.key)) {
-        applied = true;
-      }
-    }
-
-    const motionResolved = resolveLive2DMotion(model, tag, cfg?.live2dMotion);
-    if (motionResolved?.type === 'native') {
-      Live2DManager.playMotion(motionResolved.group, motionResolved.index);
-      applied = true;
-    } else if (motionResolved?.type === 'builtin') {
-      if (Live2DManager.playBuiltinMotion(motionResolved.key)) {
-        applied = true;
-      }
-    } else if (motionResolved?.type === 'disabled') {
-      Live2DManager.stopBuiltinMotion();
-    }
-    return applied;
-  } catch (e) {
-    logError('表情联动播放失败', e);
-    return false;
-  }
+  return applyEmotionWithConfigs(tag, settings.value.emotionConfigs);
 }
 
 watch(showSettings, (visible) => {
