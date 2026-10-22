@@ -950,10 +950,10 @@ async function initPet() {
 
     let loaded = await loadModelWithProgress(s.modelPath);
     if (taskId !== initTaskId || petClosed) return;
+    const bundled = getBundledModelUrl();
     if (!loaded) {
       // 原模型可能是被清掉的本地上传、旧 CDN 或换端口前的地址：先回退到内置形象，
       // 别让桌宠整个消失；失败原因写到加载条和提示里。
-      const bundled = getBundledModelUrl();
       const failedPath = String(settings.value.modelPath || '');
       if (bundled && failedPath !== bundled) {
         log('模型加载失败，回退到内置形象', { failed: failedPath, reason: Live2DManager.lastLoadError });
@@ -964,6 +964,13 @@ async function initPet() {
           try { toastr.info('原模型加载失败，已切回内置形象'); } catch { /* ignore */ }
         }
       }
+    }
+    if (!loaded && bundled) {
+      // 内置模型也失败时再给一次机会：CDN/纹理偶尔抖一下就过去了。
+      log('模型加载失败，1.5 秒后重试一次', Live2DManager.lastLoadError);
+      await new Promise((resolve) => window.setTimeout(resolve, 1500));
+      if (taskId !== initTaskId || petClosed) return;
+      loaded = await loadModelWithProgress(bundled);
     }
     if (loaded) {
       Live2DManager.mountToStage(stageSize.width, stageSize.height, 1);
