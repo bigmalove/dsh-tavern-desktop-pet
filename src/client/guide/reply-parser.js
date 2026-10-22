@@ -6,6 +6,8 @@
 
 const OPTION_BOLD = /^\s*[-*]\s*\*\*([A-H])[.．、]\s*([^*]+?)\*\*\s*[:：]?\s*(.*)$/;
 const OPTION_PLAIN = /^\s*[-*]\s*([A-H])[.．、]\s*([^：:]+?)[：:]\s*(.+)$/;
+// 真实对话里也常出现不加列表符号、不加粗的选项：「A. 现代都市：…」。
+const OPTION_BARE = /^\s*([A-H])[.．、]\s*([^：:]{1,60}?)[：:]\s*(.+)$/;
 // 「第 8 题（最后一题）：…」的括注在冒号前，不能要求题号后面紧跟冒号。
 const QUESTION_NO = /\*\*\s*第\s*(\d+)\s*题([^*]*?)\*\*/;
 const QUESTION_BOLD = /^\s*\*\*([^*]{2,160})\*\*\s*(.*)$/;
@@ -44,7 +46,7 @@ function parseOptions(lines) {
     const out = [];
     let index = start;
     while (index < lines.length) {
-      const match = OPTION_BOLD.exec(lines[index]) || OPTION_PLAIN.exec(lines[index]);
+      const match = OPTION_BOLD.exec(lines[index]) || OPTION_PLAIN.exec(lines[index]) || OPTION_BARE.exec(lines[index]);
       if (!match || match[1] !== String.fromCharCode(65 + out.length)) break;
       const label = labelOf(match[2]);
       const detail = clean(match[3]);
@@ -83,11 +85,31 @@ function findQuestion(lines, end) {
     }
   }
   for (let index = end - 1; index >= 0; index -= 1) {
-    if (/[？?]\s*$/.test(lines[index]) && lines[index].trim() !== '') {
-      return { line: index, index: undefined, question: clean(lines[index]), hint: '' };
-    }
+    const line = lines[index];
+    if (!/[？?]/.test(line) || line.trim() === '') continue;
+    // 「第一题，也是定方向的一题：你想开的是什么样的一局？也就是…」
+    // 问号在句子中间，取含问号的那一句；题号可能写成中文数字。
+    return { line: index, index: chineseQuestionIndex(line), question: questionSentence(line), hint: '' };
   }
   return null;
+}
+
+const CHINESE_DIGITS = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+
+function chineseQuestionIndex(line) {
+  const match = /第\s*([一二三四五六七八九十]+)\s*题/.exec(String(line));
+  if (!match) return undefined;
+  const value = match[1];
+  if (value === '十') return 10;
+  if (value.length === 1) return CHINESE_DIGITS[value];
+  return undefined;
+}
+
+function questionSentence(line) {
+  // 按句末标点切开，找含问号的那一句。
+  const parts = String(line).split(/(?<=[。！？!?；;：:])/u);
+  const found = parts.find((part) => /[？?]/.test(part));
+  return clean(found || line);
 }
 
 /**

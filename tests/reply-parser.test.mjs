@@ -188,3 +188,25 @@ test('选项末尾的句号不会带进按钮', () => {
   assert.deepEqual(parsed.options.map((option) => option.label), ['匿名领航员', '其他，或你来定'])
   assert.equal(parsed.options[1].freeform, true)
 })
+
+test('真实回复的另一种写法：中文题号、问号在句中、选项没有列表符号', () => {
+  const text = [
+    '你的“初步想法”后面是空的，那我就从零开始问，一题一题来，别急。',
+    '',
+    '第一题，也是定方向的一题：你想开的是什么样的一局？也就是题材、基调和尺度，这三件常常绑在一起。',
+    '',
+    'A. 现代都市、暧昧慢热：日常场景，感情靠拉扯推进。',
+    'B. 奇幻异世界、权力与征服：有规则、有势力。',
+    'C. 阴暗畸形、心理依赖：囚禁、操控。',
+    'D. 其他想法 / 你定：直接说你想的。',
+    '',
+    '选一个字母就行。',
+  ].join('\n')
+  const parsed = parseReply(text)
+  assert.equal(parsed.kind, 'question')
+  assert.equal(parsed.index, 1)
+  assert.equal(parsed.question, '你想开的是什么样的一局？')
+  assert.deepEqual(parsed.options.map((option) => option.key), ['A', 'B', 'C', 'D'])
+  assert.equal(parsed.options[3].freeform, true)
+  assert.equal(foldSummary(parsed), '第 1 题：你想开的是什么样的一局？')
+})

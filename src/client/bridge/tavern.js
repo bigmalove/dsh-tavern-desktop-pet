@@ -53,8 +53,18 @@ export function tavernUi() {
 
 function readGameId() {
   try {
-    const snapshot = state.sessions?.list?.getSnapshot?.()
-    return String(snapshot?.current || '')
+    const sessions = state.sessions
+    const snapshot = sessions?.list?.getSnapshot?.()
+    // DSH 0.1.x: snapshot.current；0.2.x 删掉了顶层 current，「当前会话」是主视图
+    // retain 的那一行（dsh-client-ui-workspace 的同一判据）。这里两种都认。
+    if (snapshot) {
+      for (const row of Object.values(snapshot.byId || {})) {
+        if (row && row.retainedBy && (row.retainedBy.mainView ?? 0) > 0) return String(row.id || '')
+      }
+      if (typeof snapshot.current === 'string' && snapshot.current) return snapshot.current
+    }
+    if (sessions && typeof sessions.current === 'string' && sessions.current) return String(sessions.current)
+    return ''
   } catch {
     return ''
   }
@@ -63,14 +73,18 @@ function readGameId() {
 function subscribeSessions() {
   const list = state.sessions?.list
   if (!list || state.stopSessions) return
+  // 「当前会话」在 0.2.x 由主视图的 retain 推导，列表订阅不一定在切换时触发；
+  // 订阅之外再留一个便宜的轮询，只在会话真的换了才广播。
+  let unsubscribe = null
   if (typeof list.subscribe === 'function') {
-    const unsubscribe = list.subscribe(() => publishGame())
-    state.stopSessions = typeof unsubscribe === 'function' ? unsubscribe : () => {}
-    return
+    const stop = list.subscribe(() => publishGame())
+    unsubscribe = typeof stop === 'function' ? stop : null
   }
-  // 没有订阅能力时退化轮询：只在会话真的换了才广播。
   const timer = window.setInterval(publishGame, 1500)
-  state.stopSessions = () => window.clearInterval(timer)
+  state.stopSessions = () => {
+    if (unsubscribe) unsubscribe()
+    window.clearInterval(timer)
+  }
 }
 
 function publishGame() {
