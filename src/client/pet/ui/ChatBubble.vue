@@ -188,6 +188,21 @@ function getModelHeadAnchor(rect: DOMRect): { x: number; y: number } | null {
   }
 }
 
+/** 模型可见内容的顶边（状态气泡挂在头顶之上，避免压住头发和呆毛）。 */
+function getModelTopAnchor(rect: DOMRect): number | null {
+  const model = Live2DManager.model as any;
+  if (!model || typeof model.getBounds !== 'function') return null;
+  try {
+    const bounds = model.getBounds?.();
+    const y = getFiniteNumber(bounds?.y);
+    const height = getFiniteNumber(bounds?.height);
+    if (y === null || height === null || height <= 0) return null;
+    return rect.top + y + Math.min(8, height * 0.02);
+  } catch {
+    return null;
+  }
+}
+
 function updateBubblePosition(): void {
   try {
     const top = getTopWindow();
@@ -198,10 +213,12 @@ function updateBubblePosition(): void {
 
     if (rect && rect.width > 0 && rect.height > 0) {
       const anchor = getModelHeadAnchor(rect);
+      const statusTop = props.status ? getModelTopAnchor(rect) : null;
       const fallbackX = rect.left + rect.width / 2;
-      const fallbackY = rect.top + rect.height * 0.22;
+      // 状态气泡没有模型包围盒时也往上抬：0.1 比吐槽气泡的 0.22 更靠头顶。
+      const fallbackY = rect.top + rect.height * (props.status ? 0.1 : 0.22);
       const rawLeft = anchor?.x ?? fallbackX;
-      const rawTop = (anchor?.y ?? fallbackY) - BUBBLE_GAP;
+      const rawTop = (statusTop ?? anchor?.y ?? fallbackY) - (props.status ? 18 : BUBBLE_GAP);
       // 气泡有固定宽度，左右各留半宽，避免贴边被裁掉。
       const halfBubble = Math.min(160, Math.max(40, (vw - 32) / 2));
       const safeLeft = Math.max(halfBubble + EDGE_PADDING, Math.min(rawLeft, Math.max(halfBubble + EDGE_PADDING, vw - halfBubble - EDGE_PADDING)));
