@@ -10,6 +10,12 @@
       @hidden="onBubbleHidden"
       @choose="onGuideChoose"
     />
+    <ChatBubble
+      :text="statusBubbleText"
+      :is-done="true"
+      :auto-close-delay-seconds="-1"
+      :status="true"
+    />
     <SettingsPanel
       :visible="showSettings"
       @close="uiStore.closeSettings()"
@@ -72,7 +78,7 @@ import { parseEmotionCotText } from '../chat/emotion-cot';
 import { ChatMonitor } from '../chat/monitor';
 import { DEFAULTS, LOCAL_LIVE2D_MODEL_PATH_PREFIX, type EmotionTag } from '../core/constants';
 import { useSettingsStore } from '../core/settings';
-import { faceForWorkStatus, labelForWorkStatus, shouldApplyWorkStatusFace } from '../core/work-status';
+import { bubbleForWorkStatus, faceForWorkStatus, labelForWorkStatus, shouldApplyWorkStatusFace } from '../core/work-status';
 import { useUiStore } from '../core/ui';
 import { hasLive2DModel } from '../db/live2d-models';
 import { Live2DManager, type ModelLoadProgress } from '../live2d/manager';
@@ -106,7 +112,7 @@ const guideActive = computed(() => Boolean(guideState.value && guideState.value.
 // 只在没有引导、没有气泡时动，免得抢引导员和吐槽的镜头。
 let stopWorkStatus: (() => void) | null = null;
 let stopWorkGame: (() => void) | null = null;
-let workStatus: { state?: string; tool?: string } | null = null;
+const workStatus = ref<{ state?: string; tool?: string; role?: string } | null>(null);
 let lastWorkFace = '';
 let lastWorkState = '';
 let workStatusSerial = 0;
@@ -130,6 +136,13 @@ const guideBubble = computed(() => {
 });
 const guideOptions = computed(() => (guideBubble.value ? (guideState.value?.options || []) : []));
 const guideChoiceDisabled = computed(() => Boolean(guideState.value?.choiceDisabled));
+
+// 工作状态气泡：生成中 / 干活中 / 等你回答 / 写完了 / 出错了。
+// 引导员和吐槽气泡优先；它们在时这条让位，免得两个气泡叠在一起。
+const statusBubbleText = computed(() => {
+  if (guideActive.value || guideBubble.value || String(bubbleText.value || '').trim()) return '';
+  return bubbleForWorkStatus(workStatus.value);
+});
 
 function onGuideChoose(option: { key?: string; label: string; freeform?: boolean }) {
   guide.choose(option);
@@ -183,13 +196,14 @@ function applyWorkStatusFace(face: string): void {
   attempt(8);
 }
 
-function applyWorkStatus(status: any): void {
-  workStatus = status && typeof status === 'object' ? status : null;
-  if (!workStatus) return;
-  const state = String(workStatus.state || '');
+function applyWorkStatus(next: any): void {
+  const status = next && typeof next === 'object' ? next : null;
+  workStatus.value = status;
+  if (!status) return;
+  const state = String(status.state || '');
   if (state !== lastWorkState) {
     lastWorkState = state;
-    log('工作状态 →', state, workStatus.tool || '');
+    log('工作状态 →', state, status.tool || '');
   }
   const bubbleVisible = Boolean(String(bubbleText.value || '').trim());
   if (state === 'idle') {
@@ -203,7 +217,7 @@ function applyWorkStatus(status: any): void {
   }
   if (
     !shouldApplyWorkStatusFace({
-      status: workStatus,
+      status: status,
       guideActive: guideActive.value,
       bubbleVisible: bubbleVisible,
     })
@@ -231,7 +245,7 @@ function stopWorkStatusWatch(): void {
   stopWorkStatus?.();
   stopWorkStatus = null;
   workStatusSerial++;
-  workStatus = null;
+  workStatus.value = null;
   lastWorkFace = '';
   lastWorkState = '';
 }
@@ -1069,8 +1083,8 @@ onMounted(() => {
       if (next && typeof next.fold === 'boolean') settings.value.guideFoldQuestions = next.fold;
     },
     guideStatus: () => guide.describe(),
-    workStatus: () => workStatus,
-    workStatusLabel: () => labelForWorkStatus(workStatus),
+    workStatus: () => workStatus.value,
+    workStatusLabel: () => labelForWorkStatus(workStatus.value),
   });
 
   // 引导状态桥成 Vue 响应式；桌宠被关掉时不订阅。

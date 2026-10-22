@@ -31,6 +31,34 @@ export function faceForWorkStatus(state) {
   return Object.prototype.hasOwnProperty.call(WORK_STATUS_FACES, key) ? WORK_STATUS_FACES[key] : '';
 }
 
+/** 干活时按工具说一句更具体的；没登记的工具回落「干活中…」。 */
+const WORK_STATUS_TOOL_BUBBLES = Object.freeze({
+  ask_user_question: '等你回答…',
+  tavern_update_card: '写进卡里…',
+  tavern_validate_card: '检查格式…',
+  tavern_copy_card: '复制一份…',
+});
+
+/**
+ * 状态 → 桌宠头顶的气泡短句：生成中 / 干活中 / 等你回答 / 写完了 / 出错了。
+ * 比面板文案短，一眼能看完；idle 返回空串（气泡收起）。
+ */
+export function bubbleForWorkStatus(status) {
+  const state = String((status && status.state) || '').trim();
+  if (state === 'thinking') return '生成中…';
+  if (state === 'working') {
+    if (status.role === 'settlement') return '后台结算中…';
+    const tool = typeof status.tool === 'string' ? status.tool.trim() : '';
+    return Object.prototype.hasOwnProperty.call(WORK_STATUS_TOOL_BUBBLES, tool)
+      ? WORK_STATUS_TOOL_BUBBLES[tool]
+      : '干活中…';
+  }
+  if (state === 'waiting') return '等你回答…';
+  if (state === 'success') return '写完了！';
+  if (state === 'error') return '出错了…';
+  return '';
+}
+
 /** 状态 → 面板文案；干活时把工具名附上，便于确认状态是从哪来的。 */
 export function labelForWorkStatus(status) {
   const state = String((status && status.state) || '').trim();

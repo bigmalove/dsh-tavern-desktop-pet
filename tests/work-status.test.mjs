@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  bubbleForWorkStatus,
   faceForWorkStatus,
   labelForWorkStatus,
   shouldApplyWorkStatusFace,
@@ -37,4 +38,17 @@ test('工作状态的表情让位规则：引导员在、气泡在、idle 都不
   assert.equal(shouldApplyWorkStatusFace({ status: { state: 'idle' } }), false);
   assert.equal(shouldApplyWorkStatusFace({ status: { state: 'unknown' } }), false);
   assert.equal(shouldApplyWorkStatusFace(null), false);
+});
+
+test('工作状态 → 气泡短句：生成中、等你回答、写完了、出错了；干活时认工具', () => {
+  assert.equal(bubbleForWorkStatus({ state: 'thinking' }), '生成中…');
+  assert.equal(bubbleForWorkStatus({ state: 'working' }), '干活中…');
+  assert.equal(bubbleForWorkStatus({ state: 'working', tool: 'tavern_update_card' }), '写进卡里…');
+  assert.equal(bubbleForWorkStatus({ state: 'working', tool: 'ask_user_question' }), '等你回答…');
+  assert.equal(bubbleForWorkStatus({ state: 'working', role: 'settlement' }), '后台结算中…');
+  assert.equal(bubbleForWorkStatus({ state: 'waiting' }), '等你回答…');
+  assert.equal(bubbleForWorkStatus({ state: 'success' }), '写完了！');
+  assert.equal(bubbleForWorkStatus({ state: 'error' }), '出错了…');
+  assert.equal(bubbleForWorkStatus({ state: 'idle' }), '');
+  assert.equal(bubbleForWorkStatus(null), '');
 });

@@ -2,12 +2,12 @@
   <div
     v-if="visible"
     class="chat-bubble"
-    :class="{ 'is-guide': guide }"
+    :class="{ 'is-guide': guide, 'is-status': status }"
     :style="bubbleStyle"
   >
-    <div class="bubble-content" :class="{ 'is-guide': guide }">
+    <div class="bubble-content" :class="{ 'is-guide': guide, 'is-status': status }" :role="status ? 'status' : undefined">
       <button
-        v-if="isDone && !guide"
+        v-if="isDone && !guide && !status"
         type="button"
         class="bubble-close"
         aria-label="关闭聊天气泡"
@@ -84,7 +84,7 @@
       <template v-else>
         <span class="bubble-text">{{ displayText }}</span>
         <span
-          v-if="!isDone"
+          v-if="!isDone && !status"
           class="cursor"
         >|</span>
       </template>
@@ -125,6 +125,8 @@ const props = defineProps<{
   guide?: GuideBubbleContent | null;
   options?: GuideOption[];
   choiceDisabled?: boolean;
+  // 工作状态气泡：只显示一行短句，不自动关闭、不显示关闭按钮和光标。
+  status?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -272,6 +274,7 @@ function getAutoCloseDelayMs(): number {
 
 function scheduleAutoClose(): void {
   stopAutoCloseTimer();
+  if (props.status) return;
   if (!props.isDone) return;
   if (!String(props.text || '').trim()) return;
 
@@ -285,6 +288,24 @@ function scheduleAutoClose(): void {
 }
 
 function syncBubbleState(): void {
+  if (props.status) {
+    // 工作状态：有字就显示，没字就收起；跟着状态走，不自动关闭。
+    const statusText = String(props.text || '');
+    if (statusText) {
+      visible.value = true;
+      displayText.value = statusText;
+      stopLoadingAnimation();
+      stopAutoCloseTimer();
+      startPositionSync();
+    } else {
+      visible.value = false;
+      displayText.value = '';
+      stopLoadingAnimation();
+      stopPositionSync();
+      stopAutoCloseTimer();
+    }
+    return;
+  }
   if (props.guide) {
     // 引导气泡：内容由 props.guide 决定，不自动关闭，也不显示「。。。」加载帧。
     visible.value = true;
@@ -447,6 +468,25 @@ onUnmounted(() => {
   }
   51%, 100% {
     opacity: 0;
+  }
+}
+
+/* 工作状态：一行短句，宽度跟着文字走，不挡正文。 */
+.chat-bubble.is-status {
+  width: auto;
+  max-width: min(240px, calc(100vw - 32px));
+}
+
+.bubble-content.is-status {
+  padding: 5px 12px 6px;
+  border-color: theme.$ark-accent-cyan;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
+  font-size: 12px;
+  opacity: 0.94;
+
+  &::after {
+    width: 18px;
+    background: theme.$ark-accent-cyan;
   }
 }
 
