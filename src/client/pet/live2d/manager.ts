@@ -64,6 +64,8 @@ export const Live2DManager = {
   _hasLoggedBlobUrlDisabled: false,
   model: null as any,
   isReady: false,
+  /** 最近一次模型加载失败的原因；加载成功后清空。 */
+  lastLoadError: '' as string,
   modelBaseWidth: null as number | null,
   modelBaseHeight: null as number | null,
   modelBaseBounds: null as { x: number; y: number; width: number; height: number } | null,
@@ -1743,6 +1745,7 @@ export const Live2DManager = {
       reportProgress(8, '初始化 Live2D 引擎');
       const ready = await this.init();
       if (!ready) {
+        this.lastLoadError = 'Live2D 引擎初始化失败';
         reportProgress(100, 'Live2D 引擎初始化失败');
         return false;
       }
@@ -2001,9 +2004,11 @@ export const Live2DManager = {
         log('模型已通过回退路径加载:', loadedFrom);
       }
       reportProgress(100, '模型加载完成');
+      this.lastLoadError = '';
       log('模型加载成功');
       return true;
     } catch (e) {
+      this.lastLoadError = String((e as any)?.message || e || '未知原因');
       reportProgress(100, '模型加载失败');
       error('模型加载失败:', e);
       return false;

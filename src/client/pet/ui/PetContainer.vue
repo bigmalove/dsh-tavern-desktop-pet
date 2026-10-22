@@ -78,6 +78,7 @@ import { parseEmotionCotText } from '../chat/emotion-cot';
 import { ChatMonitor } from '../chat/monitor';
 import { DEFAULTS, LOCAL_LIVE2D_MODEL_PATH_PREFIX, type EmotionTag } from '../core/constants';
 import { useSettingsStore } from '../core/settings';
+import { getBundledModelUrl } from '../core/bundled-model';
 import { faceForWorkStatus, labelForWorkStatus, pickBubbleForWorkStatus, shouldApplyWorkStatusFace } from '../core/work-status';
 import { useUiStore } from '../core/ui';
 import { hasLive2DModel } from '../db/live2d-models';
@@ -756,9 +757,10 @@ async function loadModelWithProgress(path: string): Promise<boolean> {
     return loaded;
   }
 
+  const reason = String(Live2DManager.lastLoadError || '').trim();
   renderModelLoadProgress({
     percent: 100,
-    message: loaded ? '模型加载完成' : '模型加载失败',
+    message: loaded ? '模型加载完成' : (reason ? `模型加载失败：${reason.slice(0, 60)}` : '模型加载失败'),
   });
   modelLoadingHideTimer = window.setTimeout(() => {
     if (taskId !== modelLoadTaskId) return;
@@ -946,13 +948,29 @@ async function initPet() {
     }
     log('Live2D 舞台创建完成');
 
-    const loaded = await loadModelWithProgress(s.modelPath);
+    let loaded = await loadModelWithProgress(s.modelPath);
     if (taskId !== initTaskId || petClosed) return;
+    if (!loaded) {
+      // 原模型可能是被清掉的本地上传、旧 CDN 或换端口前的地址：先回退到内置形象，
+      // 别让桌宠整个消失；失败原因写到加载条和提示里。
+      const bundled = getBundledModelUrl();
+      const failedPath = String(settings.value.modelPath || '');
+      if (bundled && failedPath !== bundled) {
+        log('模型加载失败，回退到内置形象', { failed: failedPath, reason: Live2DManager.lastLoadError });
+        settings.value.modelPath = bundled;
+        loaded = await loadModelWithProgress(bundled);
+        if (taskId !== initTaskId || petClosed) return;
+        if (loaded) {
+          try { toastr.info('原模型加载失败，已切回内置形象'); } catch { /* ignore */ }
+        }
+      }
+    }
     if (loaded) {
       Live2DManager.mountToStage(stageSize.width, stageSize.height, 1);
       log('Live2D 模型挂载完成');
     } else {
-      notifyInitError('Live2D 模型加载失败（可在设置里更换模型或关闭 CDN）');
+      const reason = String(Live2DManager.lastLoadError || '').trim();
+      notifyInitError('Live2D 模型加载失败' + (reason ? '：' + reason.slice(0, 80) : '') + '（可在设置里更换模型）');
     }
 
     ChatMonitor.init(
