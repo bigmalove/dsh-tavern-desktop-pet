@@ -22,6 +22,7 @@ import { createGuidePresenter } from './guide/presenter.js'
 import { guide } from './guide/session.js'
 import { Live2DManager } from './pet/live2d/manager'
 import { DEFAULTS } from './pet/core/constants'
+import { BUNDLED_MODEL_ASSET, isBundledModelPath, setBundledModelUrl } from './pet/core/bundled-model'
 import { useSettingsStore } from './pet/core/settings'
 import GuideDock from './pet/ui/GuideDock.vue'
 import PetContainer from './pet/ui/PetContainer.vue'
@@ -226,11 +227,13 @@ export function apply(ctx) {
   // shizuku，装过旧版的用户把那个默认值迁过来；自己挑过模型的保持不动。
   try {
     if (typeof ctx.tavernUi.assetUrl === 'function') {
-      const assetPath = ctx.tavernUi.assetUrl('live2d/dafeiyu/dafeiyu.model3.json')
+      const assetPath = ctx.tavernUi.assetUrl(BUNDLED_MODEL_ASSET)
       const bundledModel = new URL(assetPath, window.location.href).href
+      setBundledModelUrl(bundledModel)
       const settingsStore = useSettingsStore(pinia)
       const current = String(settingsStore.settings.modelPath || '')
-      if (current === '' || current === DEFAULTS.MODEL_PATH) {
+      // 旧默认值、空值，以及换端口/来源前的自带模型地址，都归到当前地址。
+      if (current === '' || current === DEFAULTS.MODEL_PATH || isBundledModelPath(current)) {
         settingsStore.updateSettings({ modelPath: bundledModel })
         console.log('[dsh-tavern-desktop-pet] 默认形象切换为大肥鱼 Live2D', { model: bundledModel })
       }
