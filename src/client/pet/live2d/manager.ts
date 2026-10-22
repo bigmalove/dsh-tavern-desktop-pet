@@ -1855,7 +1855,8 @@ export const Live2DManager = {
       } else {
         reportProgress(20, '解析远程模型地址');
         let modelUrl: string;
-        if (modelPath.startsWith('http://') || modelPath.startsWith('https://')) {
+        if (modelPath.startsWith('http://') || modelPath.startsWith('https://') || modelPath.startsWith('/')) {
+          // 同源绝对路径（插件 assets 的 assetUrl）直接用，不要拼 CDN 前缀。
           modelUrl = modelPath;
         } else {
           modelUrl = `${LIVE2D_CDN_BASE}${modelPath}`;

@@ -21,6 +21,8 @@ import { clearPetActions, openPetSettings, petActions, teasePet } from './bridge
 import { createGuidePresenter } from './guide/presenter.js'
 import { guide } from './guide/session.js'
 import { Live2DManager } from './pet/live2d/manager'
+import { DEFAULTS } from './pet/core/constants'
+import { useSettingsStore } from './pet/core/settings'
 import GuideDock from './pet/ui/GuideDock.vue'
 import PetContainer from './pet/ui/PetContainer.vue'
 
@@ -214,8 +216,25 @@ export function apply(ctx) {
 
   const gameId = attachTavern({ tavernUi: ctx.tavernUi, sessions: ctx.sessions })
 
+  const pinia = createPinia()
+  // 默认形象：插件自带的大肥鱼 Live2D（assets/live2d/dafeiyu）。旧版默认是 CDN 上的
+  // shizuku，装过旧版的用户把那个默认值迁过来；自己挑过模型的保持不动。
+  try {
+    if (typeof ctx.tavernUi.assetUrl === 'function') {
+      const assetPath = ctx.tavernUi.assetUrl('live2d/dafeiyu/dafeiyu.model3.json')
+      const bundledModel = new URL(assetPath, window.location.href).href
+      const settingsStore = useSettingsStore(pinia)
+      const current = String(settingsStore.settings.modelPath || '')
+      if (current === '' || current === DEFAULTS.MODEL_PATH) {
+        settingsStore.updateSettings({ modelPath: bundledModel })
+        console.log('[dsh-tavern-desktop-pet] 默认形象切换为大肥鱼 Live2D', { model: bundledModel })
+      }
+    }
+  } catch (error) {
+    console.warn('[dsh-tavern-desktop-pet] 默认模型切换失败，继续用原模型', error)
+  }
   const app = createApp(PetContainer)
-  app.use(createPinia())
+  app.use(pinia)
   app.config.errorHandler = (error, _instance, info) => {
     console.error('[dsh-tavern-desktop-pet] Vue error:', info, error)
   }
@@ -292,7 +311,7 @@ export function apply(ctx) {
   console.log('[dsh-tavern-desktop-pet] 已挂载', { gameId: gameId || '(未打开任何局)' })
   if (typeof window !== 'undefined') {
     window.__dshTavernPetDebug = {
-      version: '0.3.2',
+      version: '0.4.0',
       guide: () => guide.getState(),
       talking: () => Live2DManager.isTalking(),
       mouth: () => Live2DManager._mouthCurrentValue,

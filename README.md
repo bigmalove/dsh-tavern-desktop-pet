@@ -47,6 +47,18 @@
 
 实测注意：模型对极端情节会直接拒绝（连吐槽也一起拒），这是模型自身的内容策略，换个模型或换段剧情即可。
 
+## 默认形象
+
+插件自带一个 Live2D 模型「大肥鱼」（Cubism 4，含 23 组动作、15 个表情），放在
+`assets/live2d/dafeiyu/`，首次加载会自动设为默认形象；之前用 CDN shizuku 的旧默认值
+会自动迁过来，自己挑过模型的不会被改动。
+
+模型来自 [`jerryzmtz/dsh-tavern-galgame`](https://github.com/jerryzmtz/dsh-tavern-galgame)
+的 `alpha-r12` 发行附件，角色与素材署名见
+[`assets/live2d/dafeiyu/NOTICE.md`](assets/live2d/dafeiyu/NOTICE.md)：大肥鱼（鲸鱼娘
+DeepSeek 同人），原作 上善无形，女仆二次设计 ZipZipPipe，衍生素材 kousakayou，
+按 CC BY-NC-SA 4.0 非商业分享。
+
 ## 安装
 
 Tavern 的插件就是「一个文件夹放进数据目录的 `plugins/`」——加载器读 `package.json` 的 `exports["."]`（宿主侧）与 `dsh.client` + `exports["./client"]`（浏览器侧），然后自己在 `cordis.patch.yml` 里补入口。所以这里不需要打包分发，克隆下来就是可用的插件。

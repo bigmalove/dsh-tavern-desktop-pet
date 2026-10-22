@@ -1,0 +1,238 @@
+{
+	"Version": 3,
+	"FileReferences": {
+		"Moc": "dafeiyu.moc3",
+		"Textures": [
+			"dafeiyu.2048/texture_00.png",
+			"dafeiyu.2048/texture_01.png"
+		],
+		"Physics": "dafeiyu.physics3.json",
+		"DisplayInfo": "dafeiyu.cdi3.json",
+		"Motions": {
+			"Idle": [
+				{
+					"File": "dafeiyu.idle.motion3.json"
+				}
+			],
+			"Blink": [
+				{
+					"File": "dafeiyu.blink.motion3.json"
+				}
+			],
+			"Nod": [
+				{
+					"File": "dafeiyu.nod.motion3.json"
+				}
+			],
+			"Shake": [
+				{
+					"File": "dafeiyu.shake.motion3.json"
+				}
+			],
+			"TailSwing": [
+				{
+					"File": "dafeiyu.tailSwing.motion3.json"
+				}
+			],
+			"Shy": [
+				{
+					"File": "dafeiyu.shy.motion3.json"
+				}
+			],
+			"Wave": [
+				{
+					"File": "dafeiyu.wave.motion3.json"
+				}
+			],
+			"HeadTilt": [
+				{
+					"File": "dafeiyu.headTilt.motion3.json"
+				}
+			],
+			"Cheer": [
+				{
+					"File": "dafeiyu.cheer.motion3.json"
+				}
+			],
+			"Sway": [
+				{
+					"File": "dafeiyu.sway.motion3.json"
+				}
+			],
+			"Mood_joy": [
+				{
+					"File": "motions/mood_joy.motion3.json",
+					"FadeInTime": 0.3,
+					"FadeOutTime": 0.4
+				}
+			],
+			"Mood_anger": [
+				{
+					"File": "motions/mood_anger.motion3.json",
+					"FadeInTime": 0.3,
+					"FadeOutTime": 0.4
+				}
+			],
+			"Mood_sad": [
+				{
+					"File": "motions/mood_sad.motion3.json",
+					"FadeInTime": 0.3,
+					"FadeOutTime": 0.4
+				}
+			],
+			"Mood_anxious": [
+				{
+					"File": "motions/mood_anxious.motion3.json",
+					"FadeInTime": 0.3,
+					"FadeOutTime": 0.4
+				}
+			],
+			"Mood_shy": [
+				{
+					"File": "motions/mood_shy.motion3.json",
+					"FadeInTime": 0.3,
+					"FadeOutTime": 0.4
+				}
+			],
+			"Mood_disgust": [
+				{
+					"File": "motions/mood_disgust.motion3.json",
+					"FadeInTime": 0.3,
+					"FadeOutTime": 0.4
+				}
+			],
+			"Mood_love": [
+				{
+					"File": "motions/mood_love.motion3.json",
+					"FadeInTime": 0.3,
+					"FadeOutTime": 0.4
+				}
+			],
+			"Mood_crying": [
+				{
+					"File": "motions/mood_crying.motion3.json",
+					"FadeInTime": 0.3,
+					"FadeOutTime": 0.4
+				}
+			],
+			"Mood_smug": [
+				{
+					"File": "motions/mood_smug.motion3.json",
+					"FadeInTime": 0.3,
+					"FadeOutTime": 0.4
+				}
+			],
+			"Mood_singing": [
+				{
+					"File": "motions/mood_singing.motion3.json",
+					"FadeInTime": 0.3,
+					"FadeOutTime": 0.4
+				}
+			],
+			"Mood_eating": [
+				{
+					"File": "motions/mood_eating.motion3.json",
+					"FadeInTime": 0.3,
+					"FadeOutTime": 0.4
+				}
+			],
+			"Mood_crashed": [
+				{
+					"File": "motions/mood_crashed.motion3.json",
+					"FadeInTime": 0.3,
+					"FadeOutTime": 0.4
+				}
+			],
+			"Mood_drooling": [
+				{
+					"File": "motions/mood_drooling.motion3.json",
+					"FadeInTime": 0.3,
+					"FadeOutTime": 0.4
+				}
+			]
+		},
+		"Expressions": [
+			{
+				"Name": "neutral",
+				"File": "exp/neutral.exp3.json"
+			},
+			{
+				"Name": "calm",
+				"File": "exp/calm.exp3.json"
+			},
+			{
+				"Name": "anger",
+				"File": "exp/anger.exp3.json"
+			},
+			{
+				"Name": "anxious",
+				"File": "exp/anxious.exp3.json"
+			},
+			{
+				"Name": "crashed",
+				"File": "exp/crashed.exp3.json"
+			},
+			{
+				"Name": "crying",
+				"File": "exp/crying.exp3.json"
+			},
+			{
+				"Name": "disgust",
+				"File": "exp/disgust.exp3.json"
+			},
+			{
+				"Name": "drooling",
+				"File": "exp/drooling.exp3.json"
+			},
+			{
+				"Name": "eating",
+				"File": "exp/eating.exp3.json"
+			},
+			{
+				"Name": "joy",
+				"File": "exp/joy.exp3.json"
+			},
+			{
+				"Name": "love",
+				"File": "exp/love.exp3.json"
+			},
+			{
+				"Name": "sad",
+				"File": "exp/sad.exp3.json"
+			},
+			{
+				"Name": "shy",
+				"File": "exp/shy.exp3.json"
+			},
+			{
+				"Name": "singing",
+				"File": "exp/singing.exp3.json"
+			},
+			{
+				"Name": "smug",
+				"File": "exp/smug.exp3.json"
+			}
+		]
+	},
+	"Groups": [
+		{
+			"Target": "Parameter",
+			"Name": "EyeBlink",
+			"Ids": [
+				"ParamEyeLOpen",
+				"ParamEyeROpen"
+			]
+		},
+		{
+			"Target": "Parameter",
+			"Name": "LipSync",
+			"Ids": [
+				"ParamMouthOpenY"
+			]
+		}
+	],
+	"ForkStage": {
+		"HeadTop": 0.1518,
+		"Chin": 0.4691
+	}
+}

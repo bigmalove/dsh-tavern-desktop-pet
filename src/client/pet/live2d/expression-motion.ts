@@ -20,39 +20,39 @@ export const EXPRESSION_LIVE2D_MAP: Record<
   },
   微笑: {
     expressions: ['smile', 'happy', 'joy', 'glad', 'pleased'],
-    motions: ['happy', 'smile', 'joy', 'weixiao', 'xiao', '微笑'],
+    motions: ['happy', 'smile', 'joy', 'weixiao', 'xiao', '微笑', 'cheer', 'mood_joy'],
   },
   生气: {
     expressions: ['angry', 'anger', 'mad', 'rage', 'annoyed'],
-    motions: ['angry', 'rage', 'mad', 'shengqi', 'duqi', '生气'],
+    motions: ['angry', 'rage', 'mad', 'shengqi', 'duqi', '生气', 'mood_anger'],
   },
   难过: {
     expressions: ['sad', 'sorrow', 'cry', 'upset', 'depressed'],
-    motions: ['sad', 'cry', 'sorrow', 'nanguo', 'leiw', '难过'],
+    motions: ['sad', 'cry', 'sorrow', 'nanguo', 'leiw', '难过', 'mood_sad', 'mood_crying'],
   },
   惊讶: {
     expressions: ['surprised', 'shock', 'amazed', 'wow', 'astonished'],
-    motions: ['surprised', 'shock', 'amazed', 'jingya', 'jingxi', '惊讶'],
+    motions: ['surprised', 'shock', 'amazed', 'jingya', 'jingxi', '惊讶', 'shake'],
   },
   嘲讽: {
-    expressions: ['smirk', 'mock', 'sneer', 'tease', 'sarcastic'],
-    motions: ['mock', 'tease', 'tiaoxi', '嘲讽'],
+    expressions: ['smirk', 'mock', 'sneer', 'tease', 'sarcastic', 'smug'],
+    motions: ['mock', 'tease', 'tiaoxi', '嘲讽', 'mood_smug', 'smug'],
   },
   害羞: {
     expressions: ['shy', 'blush', 'embarrassed', 'bashful', 'timid'],
-    motions: ['shy', 'embarrassed', 'blush', 'haixiu', 'shame', '害羞'],
+    motions: ['shy', 'embarrassed', 'blush', 'haixiu', 'shame', '害羞', 'mood_shy'],
   },
   思考: {
-    expressions: ['think', 'ponder', 'confused', 'wonder', 'curious'],
-    motions: ['think', 'ponder', 'wonder', 'sikao', '思考'],
+    expressions: ['think', 'ponder', 'confused', 'wonder', 'curious', 'calm'],
+    motions: ['think', 'ponder', 'wonder', 'sikao', '思考', 'headtilt', 'mood_anxious'],
   },
   大笑: {
-    expressions: ['laugh', 'lol', 'haha', 'giggle', 'rofl'],
-    motions: ['laugh', 'giggle', 'haha', 'daxiao', 'oowarai', '大笑'],
+    expressions: ['laugh', 'lol', 'haha', 'giggle', 'rofl', 'joy'],
+    motions: ['laugh', 'giggle', 'haha', 'daxiao', 'oowarai', '大笑', 'cheer', 'mood_joy'],
   },
   搞怪: {
-    expressions: ['playful', 'wink', 'silly', 'fun', 'mischievous'],
-    motions: ['playful', 'wink', 'fun', 'gaoguai', 'silly', '搞怪'],
+    expressions: ['playful', 'wink', 'silly', 'fun', 'mischievous', 'smug'],
+    motions: ['playful', 'wink', 'fun', 'gaoguai', 'silly', '搞怪', 'tailswing', 'wave'],
   },
 };
 

@@ -10,7 +10,7 @@
 //   DSH_HOME=/path node install.mjs  # 装到别的 DSH 安装
 //
 // 只依赖 node 内置模块：克隆下来直接跑，不需要 npm install。
-import { copyFile, mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { copyFile, cp, mkdir, readFile, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -46,15 +46,10 @@ for (const file of FILES) {
   await copyFile(path.join(root, file), path.join(target, file))
 }
 
-// assets/ 是插件自己的静态资源目录（tavernUi.assetUrl 会读它），有就一起带上。
+// assets/ 是插件自己的静态资源目录（tavernUi.assetUrl 会读它），有就整棵带上；
+// Live2D 模型是 assets/live2d/<模型>/ 这样的多层目录，不能只拷一层。
 if (await exists(path.join(root, 'assets'))) {
-  const files = await readdir(path.join(root, 'assets'))
-  if (files.length > 0) {
-    await mkdir(path.join(target, 'assets'), { recursive: true })
-    for (const file of files) {
-      await copyFile(path.join(root, 'assets', file), path.join(target, 'assets', file))
-    }
-  }
+  await cp(path.join(root, 'assets'), path.join(target, 'assets'), { recursive: true })
 }
 
 await writeFile(

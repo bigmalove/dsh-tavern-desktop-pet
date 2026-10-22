@@ -1,0 +1,72 @@
+{
+ "Type": "Live2D Expression",
+ "FadeInTime": 0.3,
+ "FadeOutTime": 0.3,
+ "Parameters": [
+  {
+   "Id": "ParamAngerExp",
+   "Value": 0.0,
+   "Blend": "Overwrite"
+  },
+  {
+   "Id": "ParamAnxiousExp",
+   "Value": 0.0,
+   "Blend": "Overwrite"
+  },
+  {
+   "Id": "ParamCrashedExp",
+   "Value": 1.0,
+   "Blend": "Overwrite"
+  },
+  {
+   "Id": "ParamCryingExp",
+   "Value": 0.0,
+   "Blend": "Overwrite"
+  },
+  {
+   "Id": "ParamDisgustExp",
+   "Value": 0.0,
+   "Blend": "Overwrite"
+  },
+  {
+   "Id": "ParamDroolingExp",
+   "Value": 0.0,
+   "Blend": "Overwrite"
+  },
+  {
+   "Id": "ParamEatingExp",
+   "Value": 0.0,
+   "Blend": "Overwrite"
+  },
+  {
+   "Id": "ParamJoyExp",
+   "Value": 0.0,
+   "Blend": "Overwrite"
+  },
+  {
+   "Id": "ParamLoveExp",
+   "Value": 0.0,
+   "Blend": "Overwrite"
+  },
+  {
+   "Id": "ParamSadExp",
+   "Value": 0.0,
+   "Blend": "Overwrite"
+  },
+  {
+   "Id": "ParamShyExp",
+   "Value": 0.0,
+   "Blend": "Overwrite"
+  },
+  {
+   "Id": "ParamSingingExp",
+   "Value": 0.0,
+   "Blend": "Overwrite"
+  },
+  {
+   "Id": "ParamSmugExp",
+   "Value": 0.0,
+   "Blend": "Overwrite"
+  }
+ ]
+}
