@@ -15,9 +15,10 @@
 import { createPinia } from 'pinia'
 import React from 'react'
 import { createApp } from 'vue'
-import { installSillyTavernShims, uninstallSillyTavernShims } from './bridge/shims.js'
+import { getVariables, installSillyTavernShims, onVariablesChanged, uninstallSillyTavernShims } from './bridge/shims.js'
 import { attachTavern, detachTavern } from './bridge/tavern.js'
 import { clearPetActions, openPetSettings, petActions, teasePet } from './bridge/actions.js'
+import { createGuidePresenter } from './guide/presenter.js'
 import PetContainer from './pet/ui/PetContainer.vue'
 
 export const name = 'dsh-tavern-desktop-pet'
@@ -46,6 +47,8 @@ const PANEL_CSS = `
   border:1px solid var(--color-border-secondary,rgba(0,0,0,.18));background:var(--color-background-primary,#fff);
   color:var(--color-text-primary,#1c1c1a)}
 .pet-panel-hint{margin-top:4px;font-size:12px;color:var(--color-text-tertiary,#888)}
+.pet-panel-check{display:flex;gap:6px;align-items:flex-start;font-size:12px;line-height:1.5;color:var(--color-text-secondary,#5f5e5a);cursor:pointer}
+.pet-panel-check input{margin:2px 0 0}
 `
 
 function ensureRootStyle() {
@@ -64,11 +67,15 @@ function PetPanel(ctx) {
     const [visible, setVisible] = React.useState(() => petActions.isVisible())
     const [catalog, setCatalog] = React.useState(null)
     const [choice, setChoice] = React.useState(() => petActions.commentModel() || { provider: '', model: '' })
+    const [guide, setGuide] = React.useState(() => petActions.guideSettings?.() || { enabled: true, fold: true })
+    const [guideState, setGuideState] = React.useState(() => petActions.guideStatus?.() || '')
 
     React.useEffect(() => {
       const timer = setInterval(() => {
         setStatus(petActions.describe())
         setVisible(petActions.isVisible())
+        setGuide(petActions.guideSettings?.() || { enabled: true, fold: true })
+        setGuideState(petActions.guideStatus?.() || '')
       }, 1500)
       return () => clearInterval(timer)
     }, [])
@@ -144,6 +151,43 @@ function PetPanel(ctx) {
       catalog && !Array.isArray(catalog)
         ? React.createElement('div', { className: 'pet-panel-hint' }, `读取模型列表失败：${catalog.error || ''}`)
         : null,
+      // 卡片工作台引导：只在 Tavern 第 6 版接口可用时出现。
+      ctx.tavernUi.apiVersion >= 6
+        ? React.createElement(
+            'div',
+            { className: 'pet-panel-field' },
+            React.createElement('span', null, '卡片工作台引导'),
+            React.createElement(
+              'label',
+              { className: 'pet-panel-check' },
+              React.createElement('input', {
+                type: 'checkbox',
+                checked: guide.enabled,
+                onChange: (event) => {
+                  const next = { ...guide, enabled: event.target.checked }
+                  setGuide(next)
+                  petActions.setGuideSettings?.(next)
+                },
+              }),
+              '让桌宠念建卡的提问、选项变按钮',
+            ),
+            React.createElement(
+              'label',
+              { className: 'pet-panel-check' },
+              React.createElement('input', {
+                type: 'checkbox',
+                checked: guide.fold,
+                onChange: (event) => {
+                  const next = { ...guide, fold: event.target.checked }
+                  setGuide(next)
+                  petActions.setGuideSettings?.(next)
+                },
+              }),
+              '提问在主区折叠成一行',
+            ),
+            React.createElement('div', { className: 'pet-panel-hint' }, guideState || '不在卡片工作台'),
+          )
+        : React.createElement('div', { className: 'pet-panel-hint' }, 'Tavern 版本较旧，卡片工作台引导不可用。'),
       React.createElement(
         'div',
         { className: 'pet-panel-hint' },
@@ -208,6 +252,54 @@ export function apply(ctx) {
   }
 
   console.log('[dsh-tavern-desktop-pet] 已挂载', { gameId: gameId || '(未打开任何局)' })
+
+  // 卡片工作台：把「提问轮」在主区折叠成一行。跟着设置与桌宠开关走：
+  // 桌宠被关掉、引导关掉、折叠关掉时注销，主区立刻恢复原样。
+  const presenter = createGuidePresenter()
+  let presenterDispose = null
+  const guideSettings = () => {
+    const value = getVariables() || {}
+    return {
+      enabled: value.guideEnabled !== false,
+      fold: value.guideFoldQuestions !== false,
+      visible: value.petVisible !== false,
+    }
+  }
+  const syncPresenter = () => {
+    const wanted = Number(ctx.tavernUi.apiVersion || 0) >= 6 && guideSettings().enabled && guideSettings().fold && guideSettings().visible
+    if (wanted && presenterDispose === null) {
+      try {
+        presenterDispose = ctx.tavernUi.registerReplyPresenter(presenter)
+        presenterDispose = typeof presenterDispose === 'function' ? presenterDispose : () => {}
+      } catch (error) {
+        console.warn('[dsh-tavern-desktop-pet] 折叠呈现器注册失败', error)
+        presenterDispose = null
+      }
+      return
+    }
+    if (!wanted && presenterDispose !== null) {
+      try {
+        presenterDispose()
+      } catch {
+        // ignore
+      }
+      presenterDispose = null
+    }
+  }
+  if (Number(ctx.tavernUi.apiVersion || 0) >= 6) {
+    syncPresenter()
+    ctx.effect(() => onVariablesChanged(syncPresenter), 'dsh-tavern-desktop-pet: guide fold follows settings')
+    ctx.effect(() => () => {
+      if (presenterDispose !== null) {
+        try {
+          presenterDispose()
+        } catch {
+          // ignore
+        }
+        presenterDispose = null
+      }
+    }, 'dsh-tavern-desktop-pet: guide presenter')
+  }
 
   ctx.effect(() => () => {
     for (const dispose of disposers.reverse()) {

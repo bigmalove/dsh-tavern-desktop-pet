@@ -148,14 +148,28 @@ function makeKeyProxy(name) {
 // 上游用酒馆助手的 getVariables/replaceVariables 存设置。换成 localStorage，
 // 同一浏览器同一 origin 内持久。
 const variableBag = { value: storageGet('variables', {}) }
+// 设置面板改的是 Vue store，写回变量后由这里通知宿主侧代码（引导开关、折叠呈现器）。
+const variableListeners = new Set()
 
 function getVariables() {
   return JSON.parse(JSON.stringify(variableBag.value))
 }
 
+function onVariablesChanged(listener) {
+  variableListeners.add(listener)
+  return () => variableListeners.delete(listener)
+}
+
 function replaceVariables(value) {
   variableBag.value = JSON.parse(JSON.stringify(value ?? {}))
   storageSet('variables', variableBag.value)
+  for (const listener of Array.from(variableListeners)) {
+    try {
+      listener(variableBag.value)
+    } catch (error) {
+      console.warn('[dsh-tavern-desktop-pet] 设置变化回调失败', error)
+    }
+  }
   return variableBag.value
 }
 
@@ -275,3 +289,6 @@ export function uninstallSillyTavernShims(target = window) {
   document.getElementById(TOAST_HOST_ID)?.remove()
   document.getElementById(TOAST_STYLE_ID)?.remove()
 }
+
+// 宿主侧入口（main.js）读设置、跟着设置变化同步插件接口，用这两个具名导出。
+export { getVariables, onVariablesChanged }

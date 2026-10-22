@@ -172,6 +172,58 @@ export function watchTurns({ onStart, onSettled }) {
   return stopTurnWatch
 }
 
+/**
+ * 最新一条回复（含卡片工作台），Tavern 第 6 版插件接口。返回取消函数；
+ * 接口不存在时返回空取消函数，引导员据此静默。
+ */
+export function watchReply(gameId, listener) {
+  const id = String(gameId || '')
+  if (!id || !state.tavernUi || typeof state.tavernUi.watchReply !== 'function') return () => {}
+  try {
+    const stop = state.tavernUi.watchReply(id, listener)
+    return typeof stop === 'function' ? stop : () => {}
+  } catch (error) {
+    warn('订阅最新回复失败', error)
+    return () => {}
+  }
+}
+
+export function apiVersion() {
+  try {
+    return Number(state.tavernUi?.apiVersion) || 0
+  } catch {
+    return 0
+  }
+}
+
+/** 工作台里点选项：按玩家输入发送（和手打字母一致）。 */
+export function submitChoice(text) {
+  const body = String(text || '').trim()
+  if (!body) return Promise.resolve(false)
+  const gameId = state.gameId
+  if (!gameId || !state.tavernUi) return Promise.reject(new Error('这一局没有在当前页面打开'))
+  return state.tavernUi.submitInput({ gameId, text: body })
+}
+
+/** 「你定」类选项：只把输入框清空并聚焦，让玩家自己写。 */
+export function fillInput(text) {
+  const gameId = state.gameId
+  if (!gameId || !state.tavernUi) throw new Error('这一局没有在当前页面打开')
+  state.tavernUi.setInput({ gameId, text: String(text ?? '') })
+  focusComposer()
+}
+
+/** Tavern 的输入器可能是 textarea，也可能是 contenteditable。 */
+export function focusComposer() {
+  try {
+    const input = document.querySelector("[data-composer-card] :is(textarea, [contenteditable='true'])")
+    input?.focus?.()
+    if (input && 'select' in input && typeof input.select === 'function') input.select()
+  } catch {
+    // ignore
+  }
+}
+
 function stopTurnWatch() {
   try {
     state.stopWatch?.()

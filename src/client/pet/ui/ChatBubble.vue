@@ -2,11 +2,12 @@
   <div
     v-if="visible"
     class="chat-bubble"
+    :class="{ 'is-guide': guide }"
     :style="bubbleStyle"
   >
-    <div class="bubble-content">
+    <div class="bubble-content" :class="{ 'is-guide': guide }">
       <button
-        v-if="isDone"
+        v-if="isDone && !guide"
         type="button"
         class="bubble-close"
         aria-label="关闭聊天气泡"
@@ -14,33 +15,124 @@
       >
         ×
       </button>
-      <span class="bubble-text">{{ displayText }}</span>
-      <span
-        v-if="!isDone"
-        class="cursor"
-      >|</span>
+      <template v-if="guide">
+        <div
+          v-if="guide.streaming"
+          class="guide-streaming"
+        >
+          {{ guide.lead || '…' }}<span class="cursor">|</span>
+        </div>
+        <template v-else>
+          <div
+            v-if="guide.ack"
+            class="guide-ack"
+          >
+            {{ guide.ack }}
+          </div>
+          <div
+            v-if="guide.question"
+            class="guide-question"
+          >
+            {{ guide.question }}
+          </div>
+          <div
+            v-if="guide.lead"
+            class="guide-lead"
+          >
+            {{ guide.lead }}
+          </div>
+          <div
+            v-if="guide.hint"
+            class="guide-hint"
+          >
+            {{ guide.hint }}
+          </div>
+          <div
+            v-if="guide.note"
+            class="guide-note"
+          >
+            {{ guide.note }}
+          </div>
+          <div
+            v-if="guide.detail"
+            class="guide-detail"
+          >
+            {{ guide.detail }}
+          </div>
+        </template>
+        <div
+          v-if="optionList.length"
+          class="guide-options"
+        >
+          <button
+            v-for="(option, index) in optionList"
+            :key="(option.key || 'free') + index"
+            type="button"
+            class="guide-option"
+            :class="{ 'is-free': option.freeform, 'is-action': option.action }"
+            :disabled="choiceLocked"
+            :title="option.detail || undefined"
+            @click="$emit('choose', option)"
+          >
+            <b v-if="option.key">{{ option.key }}</b> {{ option.label }}
+          </button>
+        </div>
+      </template>
+      <template v-else>
+        <span class="bubble-text">{{ displayText }}</span>
+        <span
+          v-if="!isDone"
+          class="cursor"
+        >|</span>
+      </template>
     </div>
     <div class="bubble-arrow"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onUnmounted, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import { Live2DManager } from '../live2d/manager';
+
+export interface GuideBubbleContent {
+  ack?: string;
+  question?: string;
+  hint?: string;
+  note?: string;
+  lead?: string;
+  detail?: string;
+  streaming?: boolean;
+  kind?: string;
+}
+
+export interface GuideOption {
+  key?: string;
+  label: string;
+  detail?: string;
+  freeform?: boolean;
+  action?: boolean;
+}
 
 const props = defineProps<{
   text: string;
   isDone: boolean;
   autoCloseDelaySeconds?: number;
+  // 卡片工作台引导：有内容时气泡按结构化内容显示，选项变按钮，不自动关闭。
+  guide?: GuideBubbleContent | null;
+  options?: GuideOption[];
+  choiceDisabled?: boolean;
 }>();
 
 const emit = defineEmits<{
   hidden: [];
+  choose: [option: GuideOption];
 }>();
 
 const visible = ref(false);
 const displayText = ref('');
 const bubbleStyle = ref<Record<string, string>>({});
+const optionList = computed(() => (props.guide && Array.isArray(props.options) ? props.options : []));
+const choiceLocked = computed(() => props.choiceDisabled === true);
 
 const HEAD_ANCHOR_RATIO = 0.2;
 const BUBBLE_GAP = 12;
@@ -189,6 +281,15 @@ function scheduleAutoClose(): void {
 }
 
 function syncBubbleState(): void {
+  if (props.guide) {
+    // 引导气泡：内容由 props.guide 决定，不自动关闭，也不显示「。。。」加载帧。
+    visible.value = true;
+    displayText.value = '';
+    stopLoadingAnimation();
+    stopAutoCloseTimer();
+    startPositionSync();
+    return;
+  }
   const text = String(props.text || '');
 
   if (text) {
@@ -215,9 +316,11 @@ function syncBubbleState(): void {
   stopAutoCloseTimer();
 }
 
-watch([() => props.text, () => props.isDone, () => props.autoCloseDelaySeconds], syncBubbleState, {
-  immediate: true,
-});
+watch(
+  [() => props.text, () => props.isDone, () => props.autoCloseDelaySeconds, () => props.guide, () => props.options],
+  syncBubbleState,
+  { immediate: true, deep: true },
+);
 
 function closeBubble(): void {
   visible.value = false;
@@ -340,6 +443,97 @@ onUnmounted(() => {
   }
   51%, 100% {
     opacity: 0;
+  }
+}
+
+/* 卡片工作台引导：比吐槽气泡宽，内容可滚动，选项是一排按钮。 */
+.chat-bubble.is-guide {
+  width: min(380px, calc(100vw - 32px));
+}
+
+.bubble-content.is-guide {
+  max-height: 55vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  pointer-events: auto;
+}
+
+.guide-ack {
+  color: theme.$ark-text-sub;
+  font-size: 12px;
+}
+
+.guide-question {
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.guide-lead {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.guide-hint,
+.guide-detail,
+.guide-note {
+  margin-top: 4px;
+  color: theme.$ark-text-sub;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.guide-streaming {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.guide-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.guide-option {
+  border: 1px solid rgba(255, 225, 0, 0.45);
+  border-radius: 999px;
+  padding: 3px 10px;
+  background: rgba(255, 225, 0, 0.08);
+  color: theme.$ark-text-main;
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+  text-align: left;
+
+  b {
+    color: theme.$ark-accent-yellow;
+    margin-right: 4px;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: theme.$ark-accent-yellow;
+    background: rgba(255, 225, 0, 0.18);
+  }
+
+  &.is-free {
+    border-style: dashed;
+  }
+
+  &.is-action {
+    background: theme.$ark-accent-yellow;
+    color: #141414;
+
+    b {
+      color: #141414;
+    }
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
 }
 </style>

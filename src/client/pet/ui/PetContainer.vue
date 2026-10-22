@@ -4,7 +4,11 @@
       :text="bubbleText"
       :is-done="bubbleDone"
       :auto-close-delay-seconds="settings.bubbleDuration"
+      :guide="guideBubble"
+      :options="guideOptions"
+      :choice-disabled="guideChoiceDisabled"
       @hidden="onBubbleHidden"
+      @choose="onGuideChoose"
     />
     <SettingsPanel
       :visible="showSettings"
@@ -48,9 +52,19 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { clearPetActions, providePetActions } from '../../bridge/actions';
-import { speak as speakViaTavern, standardEmotion, stopSpeaking as stopTavernSpeech } from '../../bridge/tavern';
+import {
+  currentGameId,
+  fillInput as fillTavernInput,
+  onGameChange,
+  speak as speakViaTavern,
+  standardEmotion,
+  stopSpeaking as stopTavernSpeech,
+  submitChoice as submitTavernChoice,
+  watchReply as watchTavernReply,
+} from '../../bridge/tavern';
+import { createGuideController } from '../../guide/guide-controller';
 import { splitZhJaForDisplayAndTts } from '../chat/bilingual-text';
 import { Commentator } from '../chat/commentator';
 import { parseEmotionCotText } from '../chat/emotion-cot';
@@ -81,6 +95,43 @@ const BASE_STAGE_WIDTH = 280;
 const BASE_STAGE_HEIGHT = 360;
 const OPEN_SETTINGS_FN_KEY = '__desktopPetOpenSettings_v2';
 let globalOpenSettingsFn: (() => void) | null = null;
+
+// 卡片工作台的引导：状态全在控制器里，这里只把它桥成响应式。
+const guideState = ref<any>(null);
+let stopGuideSubscribe: (() => void) | null = null;
+const guide = createGuideController({
+  currentSessionId: () => currentGameId(),
+  onSessionChange: (listener) => onGameChange((next: string) => listener(next)),
+  watchReply: (sessionId, listener) => watchTavernReply(sessionId, listener),
+  speak: (text, mood) => {
+    if (!settings.value.ttsAutoPlay) return;
+    void speakViaTavern({ text, emotion: standardEmotion(mood) });
+  },
+  submitChoice: (text) => submitTavernChoice(text),
+  fillInput: () => fillTavernInput(''),
+});
+const guideBubble = computed(() => {
+  const state = guideState.value;
+  if (!state || !state.active) return null;
+  const bubble = state.bubble || {};
+  if (state.phase === 'idle' && !bubble.lead) return null;
+  return {
+    ack: bubble.ack || '',
+    question: bubble.question || '',
+    hint: bubble.hint || '',
+    note: bubble.note || '',
+    lead: bubble.lead || '',
+    detail: bubble.detail || '',
+    streaming: state.streaming === true,
+    kind: state.kind || '',
+  };
+});
+const guideOptions = computed(() => (guideBubble.value ? (guideState.value?.options || []) : []));
+const guideChoiceDisabled = computed(() => Boolean(guideState.value?.choiceDisabled));
+
+function onGuideChoose(option: { key?: string; label: string; freeform?: boolean }) {
+  guide.choose(option);
+}
 
 let modelLoadTaskId = 0;
 let initTaskId = 0;
@@ -274,6 +325,12 @@ function onModelBrowserLoad(url: string): void {
 }
 
 function onManualChat(message: string): void {
+  // 工作台里 CHAT 变成「聚焦输入框」：引导员的工作是让玩家回答主对话，
+  // 不是另开一段与桌宠的闲聊（那条会走宿主吐槽模型）。
+  if (guideBubble.value) {
+    fillTavernInput('');
+    return;
+  }
   void Commentator.chat(message);
 }
 
@@ -287,6 +344,7 @@ function closePet(closeSettingsPanel = true): void {
   clearModelLoadingHideTimer();
   clearStatusCheckTimer();
   clearViewportResizeSyncTimer();
+  guide.setVisible(false);
 
   showMenu.value = false;
   showModelBrowser.value = false;
@@ -313,6 +371,7 @@ function showPet(): void {
   if (!petClosed) return;
   petClosed = false;
   settings.value.petVisible = true;
+  guide.setVisible(true);
   log('重新打开桌宠');
   syncGazeFollowBinding();
   void initPet();
@@ -724,6 +783,11 @@ async function initPet() {
       },
       onDoubleTap: (_e: GestureEvent) => {
         const motionEnabled = settings.value.doubleTapRandomMotionEnabled !== false;
+        // 工作台里没有可吐槽的正文，宿主侧吐槽必然失败：只做个动作。
+        if (guideBubble.value) {
+          Live2DManager.playRandomAnimation();
+          return;
+        }
         log(motionEnabled ? '双击宠物 -> 触发吐槽 + 随机动作' : '双击宠物 -> 触发吐槽');
         ChatMonitor.manualTrigger();
         if (motionEnabled) {
@@ -836,6 +900,13 @@ watch(
 );
 
 watch(
+  () => settings.value.guideEnabled,
+  (enabled) => {
+    guide.setEnabled(enabled !== false);
+  },
+);
+
+watch(
   () => settings.value.gazeFollowMouseEnabled,
   () => {
     syncGazeFollowBinding();
@@ -878,6 +949,11 @@ onMounted(() => {
         }
         return true;
       }
+      if (guideBubble.value) {
+        // 工作台里没有可吐槽的正文：只做个动作，不去调宿主模型。
+        Live2DManager.playRandomAnimation();
+        return true;
+      }
       ChatMonitor.manualTrigger();
       Live2DManager.playRandomAnimation();
       return true;
@@ -906,7 +982,27 @@ onMounted(() => {
       settings.value.commentModelProvider = String(next?.provider || '');
       settings.value.commentModelModel = String(next?.model || '');
     },
+    guideSettings: () => ({
+      enabled: settings.value.guideEnabled !== false,
+      fold: settings.value.guideFoldQuestions !== false,
+    }),
+    setGuideSettings: (next: { enabled?: boolean; fold?: boolean }) => {
+      if (next && typeof next.enabled === 'boolean') settings.value.guideEnabled = next.enabled;
+      if (next && typeof next.fold === 'boolean') settings.value.guideFoldQuestions = next.fold;
+    },
+    guideStatus: () => guide.describe(),
   });
+
+  // 引导状态桥成 Vue 响应式；桌宠被关掉时不订阅。
+  stopGuideSubscribe = guide.subscribe((next: unknown) => {
+    guideState.value = next;
+  });
+  if (settings.value.petVisible === false) {
+    guide.setVisible(false);
+  } else {
+    guide.setEnabled(settings.value.guideEnabled !== false);
+    guide.start();
+  }
 
   // 上次是用户主动 CLOSE 的：这次只在页面里留个空挂载点，不再加载模型。
   if (settings.value.petVisible === false) {
@@ -923,6 +1019,9 @@ onMounted(() => {
 onUnmounted(() => {
   petClosed = true;
   initTaskId++;
+  guide.stop();
+  stopGuideSubscribe?.();
+  stopGuideSubscribe = null;
   clearPetActions();
   unbindViewportResizeRecovery();
   unbindGlobalGazeFollow(true);

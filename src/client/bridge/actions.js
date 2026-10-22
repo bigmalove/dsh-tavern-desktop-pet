@@ -15,6 +15,10 @@ export const petActions = {
   describe: () => '',
   commentModel: () => null,
   setCommentModel: null,
+  // 卡片工作台引导：设置读写与当前识别状态（侧栏面板用）。
+  guideSettings: () => ({ enabled: true, fold: true }),
+  setGuideSettings: null,
+  guideStatus: () => '',
 }
 
 export function providePetActions(actions) {
@@ -33,6 +37,9 @@ export function clearPetActions() {
   petActions.describe = () => ''
   petActions.commentModel = () => null
   petActions.setCommentModel = null
+  petActions.guideSettings = () => ({ enabled: true, fold: true })
+  petActions.setGuideSettings = null
+  petActions.guideStatus = () => ''
 }
 
 export function openPetSettings() {

@@ -77,6 +77,10 @@ const SettingsSchema = z
     // 关掉后刷新不再自动挂出来，必须显式打开。
     petVisible: z.boolean().default(true),
 
+    // 卡片工作台引导：桌宠念建卡的提问、选项变按钮、提问在主区折叠。
+    guideEnabled: z.boolean().default(true),
+    guideFoldQuestions: z.boolean().default(true),
+
     // Live2D 配置
     modelPath: z.string().default(DEFAULTS.MODEL_PATH),
     useCdn: z.boolean().default(true),
