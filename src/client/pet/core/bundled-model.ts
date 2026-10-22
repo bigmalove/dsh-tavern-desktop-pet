@@ -2,7 +2,7 @@
 // assetUrl 依赖运行时（宿主地址、插件安装名），由 main 在挂载前写进来。
 export const BUNDLED_MODEL_ASSET = 'live2d/dafeiyu/dafeiyu.model3.json';
 export const BUNDLED_MODEL_SUFFIX = '/live2d/dafeiyu/dafeiyu.model3.json';
-export const BUNDLED_MODEL_NAME = '鲸鱼娘 (kousakayou)';
+export const BUNDLED_MODEL_NAME = '鲸鱼娘 (作者kousakayou)';
 
 let bundledModelUrl = '';
 
