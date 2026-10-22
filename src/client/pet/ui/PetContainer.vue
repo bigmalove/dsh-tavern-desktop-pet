@@ -119,6 +119,9 @@ let lastWorkState = '';
 let lastWorkBubbleKey = '';
 let lastBubbleLine = '';
 let workStatusSerial = 0;
+// 状态不变时，每 5 秒换一句候选，别一直顶同一句。
+const STATUS_BUBBLE_ROTATE_MS = 5000;
+let statusBubbleTimer: number | null = null;
 // 停靠区接管时，固定气泡让位，避免同一句话显示两遍。
 const guideBubble = computed(() => {
   const state = guideState.value;
@@ -199,12 +202,35 @@ function applyWorkStatusFace(face: string): void {
   attempt(8);
 }
 
+function stopStatusBubbleRotation(): void {
+  if (statusBubbleTimer !== null) {
+    window.clearInterval(statusBubbleTimer);
+    statusBubbleTimer = null;
+  }
+}
+
+function rotateStatusBubble(): void {
+  const status = workStatus.value;
+  if (!status || String(status.state || '') === 'idle') return;
+  const line = pickBubbleForWorkStatus(status, lastBubbleLine);
+  if (!line) return;
+  lastBubbleLine = line;
+  statusBubbleWanted.value = line;
+}
+
+function startStatusBubbleRotation(): void {
+  if (statusBubbleTimer !== null) return;
+  if (!workStatus.value || String(workStatus.value.state || '') === 'idle') return;
+  statusBubbleTimer = window.setInterval(rotateStatusBubble, STATUS_BUBBLE_ROTATE_MS);
+}
+
 function applyWorkStatus(next: any): void {
   const status = next && typeof next === 'object' ? next : null;
   workStatus.value = status;
   if (!status) {
     statusBubbleWanted.value = '';
     lastWorkBubbleKey = '';
+    stopStatusBubbleRotation();
     return;
   }
   const state = String(status.state || '');
@@ -217,6 +243,7 @@ function applyWorkStatus(next: any): void {
   if (state === 'idle') {
     statusBubbleWanted.value = '';
     lastWorkBubbleKey = '';
+    stopStatusBubbleRotation();
   } else if (bubbleKey !== lastWorkBubbleKey) {
     lastWorkBubbleKey = bubbleKey;
     const line = pickBubbleForWorkStatus(status, lastBubbleLine);
@@ -224,6 +251,11 @@ function applyWorkStatus(next: any): void {
       lastBubbleLine = line;
       statusBubbleWanted.value = line;
     }
+    // 新状态从第一句开始算 5 秒；状态不变时由定时器接着换。
+    stopStatusBubbleRotation();
+    startStatusBubbleRotation();
+  } else {
+    startStatusBubbleRotation();
   }
   const bubbleVisible = Boolean(String(bubbleText.value || '').trim());
   if (state === 'idle') {
@@ -264,6 +296,7 @@ function bindWorkStatus(): void {
 function stopWorkStatusWatch(): void {
   stopWorkStatus?.();
   stopWorkStatus = null;
+  stopStatusBubbleRotation();
   workStatusSerial++;
   workStatus.value = null;
   statusBubbleWanted.value = '';
