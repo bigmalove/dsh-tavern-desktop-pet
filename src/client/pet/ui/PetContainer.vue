@@ -55,16 +55,13 @@ import { storeToRefs } from 'pinia';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { clearPetActions, providePetActions } from '../../bridge/actions';
 import {
-  currentGameId,
   fillInput as fillTavernInput,
-  onGameChange,
   speak as speakViaTavern,
   standardEmotion,
   stopSpeaking as stopTavernSpeech,
-  submitChoice as submitTavernChoice,
-  watchReply as watchTavernReply,
 } from '../../bridge/tavern';
-import { createGuideController } from '../../guide/guide-controller';
+import { guideDockActive } from '../../guide/dock-state';
+import { guide } from '../../guide/session';
 import { splitZhJaForDisplayAndTts } from '../chat/bilingual-text';
 import { Commentator } from '../chat/commentator';
 import { parseEmotionCotText } from '../chat/emotion-cot';
@@ -96,23 +93,14 @@ const BASE_STAGE_HEIGHT = 360;
 const OPEN_SETTINGS_FN_KEY = '__desktopPetOpenSettings_v2';
 let globalOpenSettingsFn: (() => void) | null = null;
 
-// 卡片工作台的引导：状态全在控制器里，这里只把它桥成响应式。
+// 卡片工作台的引导：控制器是单例（停靠区也用同一份），这里只把它桥成响应式。
 const guideState = ref<any>(null);
 let stopGuideSubscribe: (() => void) | null = null;
-const guide = createGuideController({
-  currentSessionId: () => currentGameId(),
-  onSessionChange: (listener) => onGameChange((next: string) => listener(next)),
-  watchReply: (sessionId, listener) => watchTavernReply(sessionId, listener),
-  speak: (text, mood) => {
-    if (!settings.value.ttsAutoPlay) return;
-    void speakViaTavern({ text, emotion: standardEmotion(mood) });
-  },
-  submitChoice: (text) => submitTavernChoice(text),
-  fillInput: () => fillTavernInput(''),
-});
+const guideActive = computed(() => Boolean(guideState.value && guideState.value.active));
+// 停靠区接管时，固定气泡让位，避免同一句话显示两遍。
 const guideBubble = computed(() => {
   const state = guideState.value;
-  if (!state || !state.active) return null;
+  if (!state || !state.active || guideDockActive.value) return null;
   const bubble = state.bubble || {};
   if (state.phase === 'idle' && !bubble.lead) return null;
   return {
@@ -122,6 +110,7 @@ const guideBubble = computed(() => {
     note: bubble.note || '',
     lead: bubble.lead || '',
     detail: bubble.detail || '',
+    index: Number(bubble.index) || 0,
     streaming: state.streaming === true,
     kind: state.kind || '',
   };
@@ -327,7 +316,7 @@ function onModelBrowserLoad(url: string): void {
 function onManualChat(message: string): void {
   // 工作台里 CHAT 变成「聚焦输入框」：引导员的工作是让玩家回答主对话，
   // 不是另开一段与桌宠的闲聊（那条会走宿主吐槽模型）。
-  if (guideBubble.value) {
+  if (guideActive.value) {
     fillTavernInput('');
     return;
   }
@@ -784,7 +773,7 @@ async function initPet() {
       onDoubleTap: (_e: GestureEvent) => {
         const motionEnabled = settings.value.doubleTapRandomMotionEnabled !== false;
         // 工作台里没有可吐槽的正文，宿主侧吐槽必然失败：只做个动作。
-        if (guideBubble.value) {
+        if (guideActive.value) {
           Live2DManager.playRandomAnimation();
           return;
         }
@@ -949,7 +938,7 @@ onMounted(() => {
         }
         return true;
       }
-      if (guideBubble.value) {
+      if (guideActive.value) {
         // 工作台里没有可吐槽的正文：只做个动作，不去调宿主模型。
         Live2DManager.playRandomAnimation();
         return true;

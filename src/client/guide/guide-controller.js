@@ -28,7 +28,7 @@ function idleState() {
     busy: false,
     tool: null,
     kind: 'idle',
-    bubble: { ack: '', question: '', hint: '', note: '', lead: '', detail: '' },
+    bubble: { ack: '', question: '', hint: '', note: '', lead: '', detail: '', index: 0 },
     options: [],
     choiceDisabled: false,
     history: [],
@@ -147,12 +147,12 @@ export function createGuideController(deps = {}) {
     const detail = parsed.kind === 'done' && parsed.cardPath ? GUIDE_LINES.doneHint.replace('{path}', parsed.cardPath) : '';
     const bubble =
       parsed.kind === 'question'
-        ? { ack: parsed.ack || '', question: parsed.question, hint: parsed.hint || '', note: parsed.note || '', lead: '', detail: '' }
+        ? { ack: parsed.ack || '', question: parsed.question, hint: parsed.hint || '', note: parsed.note || '', lead: '', detail: '', index: parsed.index || 0 }
         : parsed.kind === 'summary'
-          ? { ack: '', question: '', hint: GUIDE_LINES.summaryHint, note: '', lead: GUIDE_LINES.summary, detail: '' }
+          ? { ack: '', question: '', hint: GUIDE_LINES.summaryHint, note: '', lead: GUIDE_LINES.summary, detail: '', index: 0 }
           : parsed.kind === 'done'
-            ? { ack: '', question: '', hint: '', note: '', lead: GUIDE_LINES.done, detail }
-            : { ack: '', question: '', hint: GUIDE_LINES.unknownHint, note: '', lead: parsed.lead || '', detail: '' };
+            ? { ack: '', question: '', hint: '', note: '', lead: GUIDE_LINES.done, detail, index: 0 }
+            : { ack: '', question: '', hint: GUIDE_LINES.unknownHint, note: '', lead: parsed.lead || '', detail: '', index: 0 };
     const mood =
       parsed.kind === 'question'
         ? GUIDE_MOODS.question
@@ -215,7 +215,7 @@ export function createGuideController(deps = {}) {
         busy,
         tool,
         kind: 'working',
-        bubble: { ack: '', question: '', hint: '', note: '', lead: text ? clean(text) : thinkingLine(tool), detail: '' },
+        bubble: { ack: '', question: '', hint: '', note: '', lead: text ? clean(text) : thinkingLine(tool), detail: '', index: 0 },
         options: [],
         choiceDisabled: false,
       });
@@ -231,7 +231,7 @@ export function createGuideController(deps = {}) {
         busy: false,
         tool: null,
         kind: 'idle',
-        bubble: { ack: '', question: '', hint: '', note: '', lead: GUIDE_LINES.empty, detail: '' },
+        bubble: { ack: '', question: '', hint: '', note: '', lead: GUIDE_LINES.empty, detail: '', index: 0 },
         options: [],
         choiceDisabled: false,
       });

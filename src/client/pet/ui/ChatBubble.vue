@@ -33,7 +33,10 @@
             v-if="guide.question"
             class="guide-question"
           >
-            {{ guide.question }}
+            <span
+              v-if="guide.index"
+              class="guide-index"
+            >第 {{ guide.index }} 题 · </span>{{ guide.question }}
           </div>
           <div
             v-if="guide.lead"
@@ -97,6 +100,7 @@ import { Live2DManager } from '../live2d/manager';
 export interface GuideBubbleContent {
   ack?: string;
   question?: string;
+  index?: number;
   hint?: string;
   note?: string;
   lead?: string;

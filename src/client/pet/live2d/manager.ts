@@ -1,4 +1,4 @@
-﻿import {
+import {
   EIKANYA_CDN_BASE,
   EIKANYA_RAW_BASE,
   LIVE2D_CDN_BASE,
@@ -2247,6 +2247,40 @@ export const Live2DManager = {
   updateScale(stageWidth: number, stageHeight: number, scale: number): void {
     if (!this.model) return;
     this._applyStageTransform(stageWidth, stageHeight, scale);
+  },
+
+  /**
+   * 停靠区的半身取景：按宽度放大、头部贴近上沿，身体多出来的部分被画布裁掉。
+   * 只改模型的位置与缩放，不动舞台容器；离开停靠区时用 updateScale 还原。
+   */
+  fitDock(stageWidth: number, stageHeight: number): boolean {
+    if (!this.model) return false;
+    const safeWidth = this._toPositiveNumber(stageWidth, 132);
+    const safeHeight = this._toPositiveNumber(stageHeight, 168);
+    const bounds = this._resolveModelBaseBounds();
+    const modelWidth = this._toPositiveNumber(bounds.width, 500);
+    const modelHeight = this._toPositiveNumber(bounds.height, 800);
+    // 1.15：左右各留一点，避免头发贴边被裁。
+    const scale = this._toScale((safeWidth / modelWidth) * 1.15, 0.3);
+
+    this.model.visible = true;
+    this.model.alpha = 1;
+    this.model.scale.set(scale);
+
+    if (this.model.anchor?.set) {
+      this.model.anchor.set(0.5, 0);
+      this.model.x = safeWidth / 2;
+      // 模型边界通常比可见头部高一点；往上挪一点点让脸出现在上半部。
+      this.model.y = -Math.max(0, modelHeight * scale - safeHeight) * 0.03;
+    } else if (this.model.pivot?.set) {
+      this.model.pivot.set(bounds.x + modelWidth / 2, bounds.y);
+      this.model.x = safeWidth / 2;
+      this.model.y = 0;
+    } else {
+      this.model.x = safeWidth / 2;
+      this.model.y = 0;
+    }
+    return true;
   },
 
   /**

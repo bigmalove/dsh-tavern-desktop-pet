@@ -19,6 +19,7 @@ import { getVariables, installSillyTavernShims, onVariablesChanged, uninstallSil
 import { attachTavern, detachTavern } from './bridge/tavern.js'
 import { clearPetActions, openPetSettings, petActions, teasePet } from './bridge/actions.js'
 import { createGuidePresenter } from './guide/presenter.js'
+import GuideDock from './pet/ui/GuideDock.vue'
 import PetContainer from './pet/ui/PetContainer.vue'
 
 export const name = 'dsh-tavern-desktop-pet'
@@ -49,6 +50,7 @@ const PANEL_CSS = `
 .pet-panel-hint{margin-top:4px;font-size:12px;color:var(--color-text-tertiary,#888)}
 .pet-panel-check{display:flex;gap:6px;align-items:flex-start;font-size:12px;line-height:1.5;color:var(--color-text-secondary,#5f5e5a);cursor:pointer}
 .pet-panel-check input{margin:2px 0 0}
+.pet-guide-dock-host{width:100%;min-width:0}
 `
 
 function ensureRootStyle() {
@@ -218,6 +220,40 @@ export function apply(ctx) {
   app.mount(root)
 
   const disposers = []
+
+  // 卡片工作台：桌宠、气泡和选项停靠到输入框上方（Tavern 第 6 版的 composer slot）。
+  if (Number(ctx.tavernUi.apiVersion || 0) >= 6 && typeof ctx.tavernUi.registerComposerSlot === 'function') {
+    const GuideDockHost = function GuideDockHost(props) {
+      const host = React.useRef(null)
+      React.useEffect(function () {
+        if (!host.current) return undefined
+        const dockApp = createApp(GuideDock)
+        dockApp.config.errorHandler = function (error, _instance, info) {
+          console.error('[dsh-tavern-desktop-pet] 停靠区 error:', info, error)
+        }
+        dockApp.mount(host.current)
+        return function () {
+          try {
+            dockApp.unmount()
+          } catch {
+            // ignore
+          }
+        }
+      }, [])
+      return React.createElement('div', { ref: host, className: 'pet-guide-dock-host' })
+    }
+    try {
+      disposers.push(
+        ctx.tavernUi.registerComposerSlot({
+          id: 'guide',
+          modes: ['card'],
+          render: (props) => React.createElement(GuideDockHost, props),
+        }),
+      )
+    } catch (error) {
+      console.warn('[dsh-tavern-desktop-pet] 停靠区注册失败', error)
+    }
+  }
 
   if (ctx.tavernUi.apiVersion >= 2) {
     try {
