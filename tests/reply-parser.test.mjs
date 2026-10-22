@@ -163,15 +163,17 @@ test('只有一行选项时不折叠；选项后还有长文时降级为 unknown
   assert.equal(longAfter.kind, 'unknown')
 })
 
-test('不加粗的选项也能认；纯文字提问（没有选项）走 unknown，气泡只说第一句', () => {
+test('不加粗的选项也能认；没有选项的开放问题给 open、不出按钮', () => {
   const plain = parseReply('已记录。\n\n**第 2 题：核心定位是什么？**\n\n- A. 引航员：只做事\n- B. 搭档：会闲聊')
   assert.equal(plain.kind, 'question')
   assert.equal(plain.index, 2)
   assert.deepEqual(plain.options.map((option) => option.label), ['引航员', '搭档'])
 
   const noOptions = parseReply('角色叫什么名字？想好了告诉我，我再接着问下一个问题。')
-  assert.equal(noOptions.kind, 'unknown')
-  assert.equal(noOptions.lead, '角色叫什么名字？')
+  assert.equal(noOptions.kind, 'question')
+  assert.equal(noOptions.open, true)
+  assert.equal(noOptions.question, '角色叫什么名字？')
+  assert.deepEqual(noOptions.options, [])
 })
 
 test('折叠摘要：带题号前缀，最多 40 字；朗读只读确认句和问题', () => {
@@ -233,4 +235,40 @@ test('「第三题：**…**。」这种没有问号的提问也能认；确认�
   assert.deepEqual(parsed.options.map((option) => option.key), ['A', 'B', 'C', 'D', 'E'])
   assert.equal(parsed.options[4].freeform, true)
   assert.equal(foldSummary(parsed), '第 3 题：她给人的第一印象，也就是她的外貌气质')
+})
+
+test('其他任务：改卡的「改好了」、写入预设/世界书也认成 done，并带上产物路径', () => {
+  const edited = parseReply('改好了。\n\n已经按你的要求调整了开场与性格。', { changed: true })
+  assert.equal(edited.kind, 'done')
+  assert.equal(edited.created, false)
+
+  const preset = parseReply('改好了。\n\n**预设路径**：`presets/叙事.json`')
+  assert.equal(preset.kind, 'done')
+  assert.equal(preset.cardPath, 'presets/叙事.json')
+  assert.equal(preset.created, false)
+
+  const worldbook = parseReply('已写入世界书条目。\n\n路径：`worldbooks/星港.json`')
+  assert.equal(worldbook.kind, 'done')
+  assert.equal(worldbook.cardPath, 'worldbooks/星港.json')
+
+  const skill = parseReply('已保存。\n\nSkill 文件：`skills/写港风.md`')
+  assert.equal(skill.kind, 'done')
+  assert.equal(skill.cardPath, 'skills/写港风.md')
+})
+
+test('其他任务：长报告里带问号不要当开放问题，避免把报告折掉', () => {
+  const report = [
+    '已完成以下修改：',
+    '',
+    '| 字段 | 改动 |',
+    '|---|---|',
+    '| 开场 | 调整了时间线 |',
+    '',
+    '详细说明：' + '这里是一段比较长的分析。'.repeat(20),
+    '',
+    '接下来你想先看哪一项？',
+  ].join('\n')
+  const parsed = parseReply(report)
+  assert.notEqual(parsed.kind, 'question')
+  assert.equal(foldSummary(parsed), null)
 })

@@ -12,8 +12,13 @@ const OPTION_BARE = /^\s*([A-H])[.．、]\s*([^：:]{1,60}?)[：:]\s*(.+)$/;
 const QUESTION_NO = /\*\*\s*第\s*(\d+)\s*题([^*]*?)\*\*/;
 const QUESTION_BOLD = /^\s*\*\*([^*]{2,160})\*\*\s*(.*)$/;
 const FREEFORM = /其他|你来定|你定|自定义|自由/;
-const DONE_LEAD = /^(建好了|已创建|已保存|已提交|改好了|保存好了)/;
+// 建卡、改卡、世界书、预设、Skill 的收尾都可能用这些开头。
+const DONE_LEAD = /^(建好了|已创建|已保存|已提交|改好了|保存好了|改完了|已写入|已更新|已修改|完成了)/;
+// 没有宿主信号时，只有强收尾词可以单独作为「做完了」。
+const DONE_STRONG = /^(建好了|已创建|改好了|保存好了|改完了|已写入|已更新|已修改)/;
 const CARD_PATH = /`?\s*(cards\/[^`\s]+\.json)\s*`?/;
+// 其他任务的产物：预设、世界书、Skill、剧本……都可能在回复里给路径。
+const ARTIFACT_PATH = /`\s*([^`\n]+\.(?:json|md|txt|ya?ml))\s*`/;
 
 function str(value) {
   return typeof value === 'string' ? value : value === undefined || value === null ? '' : String(value);
@@ -126,6 +131,14 @@ function questionSentence(line) {
   return clean(found || line);
 }
 
+/** 问题行之前的确认句：只取第一段、且只取第一句。 */
+function ackOf(lines, questionLine) {
+  const paragraphs = lines.slice(0, questionLine).join('\n').split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean);
+  const text = paragraphs.length ? clean(paragraphs[0]) : '';
+  if (!/^(已定|已记录|好|可以|没问题|[A-H]\s*记下了)/.test(text)) return '';
+  return text.split(/(?<=[。！？])/)[0] || text;
+}
+
 /**
  * @param {string} text 助手回复原文
  * @param {{ changed?: boolean, cardSaved?: string }} [context]
@@ -140,12 +153,25 @@ export function parseReply(text, { changed = false, cardSaved = '' } = {}) {
   const lines = raw.split('\n');
   const head = firstSentence(raw);
 
-  // 1. 建好 / 改好：宿主给的落盘信号最可靠；刷新后没有信号时只认首行。
-  const savedPath = str(cardSaved) || (CARD_PATH.exec(raw) || [])[1] || '';
+  // 1. 建好 / 改好 / 其他产物写完：宿主给的落盘信号最可靠；刷新后没有信号时
+  //    认首行的强收尾词，或「已保存/完成」+ 回复里给出的产物路径。
+  const artifactPath = str(cardSaved)
+    || (CARD_PATH.exec(raw) || [])[1]
+    || (ARTIFACT_PATH.exec(raw) || [])[1]
+    || '';
   const firstLine = clean(lines[0] || '');
   const doneByText = DONE_LEAD.test(firstLine);
-  if (cardSaved || (changed && (doneByText || savedPath)) || (doneByText && (savedPath || /^建好了/.test(firstLine)))) {
-    return { kind: 'done', lead: head, cardPath: savedPath, created: Boolean(cardSaved) || /^(建好了|已创建)/.test(firstLine) };
+  const doneStrong = DONE_STRONG.test(firstLine);
+  if (cardSaved
+    || (changed && (doneByText || artifactPath))
+    || (doneByText && artifactPath)
+    || (doneStrong && (artifactPath || /^(建好了|已创建|改好了|保存好了|改完了)/.test(firstLine)))) {
+    return {
+      kind: 'done',
+      lead: head,
+      cardPath: artifactPath,
+      created: Boolean(cardSaved) || /^(建好了|已创建)/.test(firstLine),
+    };
   }
 
   // 2. 提问：连续的 A～H 选项 + 选项块之前的问题行。
@@ -155,10 +181,7 @@ export function parseReply(text, { changed = false, cardSaved = '' } = {}) {
     if (after.length <= 80) {
       const question = findQuestion(lines, block.start);
       if (question !== null && question.question !== '') {
-        const before = lines.slice(0, question.line);
-        const paragraphs = before.join('\n').split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean);
-        const ackText = paragraphs.length ? clean(paragraphs[0]) : '';
-        const ack = /^(已定|已记录|好|可以|没问题|[A-H]\s*记下了)/.test(ackText) ? (ackText.split(/(?<=[。！？])/)[0] || ackText) : '';
+        const ack = ackOf(lines, question.line);
         const noteRaw = clean(lines.slice(question.line + 1, block.start).join('\n'));
         return {
           kind: 'question',
@@ -170,6 +193,30 @@ export function parseReply(text, { changed = false, cardSaved = '' } = {}) {
           options: block.options,
         };
       }
+    }
+  }
+
+  // 2b. 没有选项的提问：改卡、写 Skill、空白开始这类任务常常是开放问题。
+  //     只认短回复且不是报告（无表格/分隔线/列表项里的问号），避免把长报告折叠掉。
+  if (!block) {
+    const question = findQuestion(lines, lines.length);
+    const short = clean(raw).length <= 300;
+    const reportLike = /\|.*\|/.test(raw) || /^---\s*$/m.test(raw);
+    const line = question ? String(lines[question.line] || '') : '';
+    const listLike = /^\s*[-*|#]/.test(line);
+    // 只有一行/不完整的选项列表：不当开放问题，免得把残缺的选项折叠掉。
+    const partialOptions = /^\s*(?:[-*]\s*)?[A-H][.．、]\s/m.test(raw);
+    if (question !== null && question.question !== '' && short && !reportLike && !listLike && !partialOptions) {
+      return {
+        kind: 'question',
+        open: true,
+        index: question.index,
+        ack: ackOf(lines, question.line),
+        question: question.question,
+        hint: question.hint,
+        note: '',
+        options: [],
+      };
     }
   }
 

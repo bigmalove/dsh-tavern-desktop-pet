@@ -173,3 +173,22 @@ test('呈现器只在提问时折叠，摘要最多 40 字，生成中不折叠'
   const long = QUESTION.replace('它默认该用什么文风？', '问'.repeat(60) + '？')
   assert.equal(presenter.present({ text: long, streaming: false }).fold.summary.length, '第 3 题：'.length + 40)
 })
+
+test('其他任务：开放问题给「回答」按钮，改卡收尾说「改好啦」，工具名有对应短句', () => {
+  const run = harness()
+  run.latest().listener({ sessionId: 's1', mode: 'card', turn: 2, text: '角色叫什么名字？想好了告诉我，我再接着问。', streaming: false, busy: false })
+  let state = run.controller.getState()
+  assert.equal(state.kind, 'question')
+  assert.deepEqual(state.options.map((option) => option.label), ['回答'])
+  assert.equal(state.options[0].freeform, true)
+
+  run.latest().listener({ sessionId: 's1', mode: 'card', turn: 3, text: '改好了。\n\n**预设路径**：`presets/叙事.json`', streaming: false, busy: false })
+  state = run.controller.getState()
+  assert.equal(state.kind, 'done')
+  assert.match(state.bubble.lead, /改好啦/)
+  assert.match(state.bubble.detail, /presets\/叙事\.json/)
+
+  run.latest().listener({ sessionId: 's1', mode: 'card', turn: 4, text: '', streaming: false, busy: true, tool: 'tavern_update_worldbook' })
+  state = run.controller.getState()
+  assert.match(state.bubble.lead, /写世界书/)
+})

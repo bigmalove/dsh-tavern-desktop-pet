@@ -140,7 +140,10 @@ export function createGuideController(deps = {}) {
   }
 
   function present(parsed, reply) {
-    const options = parsed.kind === 'question' ? parsed.options.slice()
+    const questionOptions = parsed.kind === 'question'
+      ? (Array.isArray(parsed.options) && parsed.options.length > 0 ? parsed.options.slice() : [{ label: '回答', freeform: true }])
+      : null;
+    const options = questionOptions !== null ? questionOptions
       : parsed.kind === 'summary' ? SUMMARY_OPTIONS.slice()
         : parsed.kind === 'done' ? [{ label: '再改改', freeform: true }]
           : [];
@@ -151,7 +154,7 @@ export function createGuideController(deps = {}) {
         : parsed.kind === 'summary'
           ? { ack: '', question: '', hint: GUIDE_LINES.summaryHint, note: '', lead: GUIDE_LINES.summary, detail: '', index: 0 }
           : parsed.kind === 'done'
-            ? { ack: '', question: '', hint: '', note: '', lead: GUIDE_LINES.done, detail, index: 0 }
+            ? { ack: '', question: '', hint: '', note: '', lead: parsed.created === false ? GUIDE_LINES.doneEdit : GUIDE_LINES.done, detail, index: 0 }
             : { ack: '', question: '', hint: GUIDE_LINES.unknownHint, note: '', lead: parsed.lead || '', detail: '', index: 0 };
     const mood =
       parsed.kind === 'question'
