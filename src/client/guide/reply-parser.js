@@ -91,18 +91,32 @@ function findQuestion(lines, end) {
     // 问号在句子中间，取含问号的那一句；题号可能写成中文数字。
     return { line: index, index: chineseQuestionIndex(line), question: questionSentence(line), hint: '' };
   }
+  // 「第三题：**她给人的第一印象，也就是她的外貌气质**。」——没有问号，
+  // 但「第 N 题」本身就是问题行的强信号。
+  for (let index = end - 1; index >= 0; index -= 1) {
+    const line = lines[index];
+    const match = /第\s*([0-9一二三四五六七八九十]+)\s*题/.exec(line);
+    if (!match) continue;
+    const body = clean(line.slice((match.index || 0) + match[0].length)).replace(/^\s*[:：，,]\s*/, '').replace(/[。．.]\s*$/, '').trim();
+    if (body === '') continue;
+    return { line: index, index: parseQuestionIndex(match[1]), question: body, hint: '' };
+  }
   return null;
 }
 
 const CHINESE_DIGITS = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
 
-function chineseQuestionIndex(line) {
-  const match = /第\s*([一二三四五六七八九十]+)\s*题/.exec(String(line));
-  if (!match) return undefined;
-  const value = match[1];
-  if (value === '十') return 10;
-  if (value.length === 1) return CHINESE_DIGITS[value];
+function parseQuestionIndex(value) {
+  const text = String(value || '');
+  if (/^[0-9]+$/.test(text)) return Number(text);
+  if (text === '十') return 10;
+  if (text.length === 1) return CHINESE_DIGITS[text];
   return undefined;
+}
+
+function chineseQuestionIndex(line) {
+  const match = /第\s*([0-9一二三四五六七八九十]+)\s*题/.exec(String(line));
+  return match ? parseQuestionIndex(match[1]) : undefined;
 }
 
 function questionSentence(line) {
@@ -143,7 +157,8 @@ export function parseReply(text, { changed = false, cardSaved = '' } = {}) {
       if (question !== null && question.question !== '') {
         const before = lines.slice(0, question.line);
         const paragraphs = before.join('\n').split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean);
-        const ack = paragraphs.length && /^(已定|已记录|好|可以|没问题)/.test(clean(paragraphs[0])) ? clean(paragraphs[0]) : '';
+        const ackText = paragraphs.length ? clean(paragraphs[0]) : '';
+        const ack = /^(已定|已记录|好|可以|没问题|[A-H]\s*记下了)/.test(ackText) ? (ackText.split(/(?<=[。！？])/)[0] || ackText) : '';
         const noteRaw = clean(lines.slice(question.line + 1, block.start).join('\n'));
         return {
           kind: 'question',

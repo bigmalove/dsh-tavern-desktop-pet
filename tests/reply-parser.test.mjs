@@ -210,3 +210,27 @@ test('真实回复的另一种写法：中文题号、问号在句中、选项�
   assert.equal(parsed.options[3].freeform, true)
   assert.equal(foldSummary(parsed), '第 1 题：你想开的是什么样的一局？')
 })
+
+test('「第三题：**…**。」这种没有问号的提问也能认；确认句只取第一句', () => {
+  const text = [
+    'B 记下了：**便利店夜班店员**，陌生起步，靠每天固定时间进店慢慢混熟。不用建世界书，戏全在店里的灯光和收银台前面。',
+    '',
+    '第三题：**她给人的第一印象，也就是她的外貌气质**。',
+    '',
+    '- **A. 娇小娃娃脸**：看着像高中生。',
+    '- **B. 清冷高个**：素颜、脸板着。',
+    '- **C. 软圆亲和**：圆脸、爱笑。',
+    '- **D. 带刺的叛逆感**：耳钉、眼神凶。',
+    '- **E. 其他想法 / 你定**',
+    '',
+    '选完接着聊她心里的矛盾。',
+  ].join('\n')
+  const parsed = parseReply(text)
+  assert.equal(parsed.kind, 'question')
+  assert.equal(parsed.index, 3)
+  assert.equal(parsed.question, '她给人的第一印象，也就是她的外貌气质')
+  assert.equal(parsed.ack, 'B 记下了：便利店夜班店员，陌生起步，靠每天固定时间进店慢慢混熟。')
+  assert.deepEqual(parsed.options.map((option) => option.key), ['A', 'B', 'C', 'D', 'E'])
+  assert.equal(parsed.options[4].freeform, true)
+  assert.equal(foldSummary(parsed), '第 3 题：她给人的第一印象，也就是她的外貌气质')
+})
