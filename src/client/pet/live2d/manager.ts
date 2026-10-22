@@ -82,6 +82,8 @@ export const Live2DManager = {
   _talkTimer: null as ReturnType<typeof setInterval> | null,
   _talkStep: 0,
   _inModelUpdate: false,
+  _writingMouth: false,
+  _mouthHookOff: null as (() => void) | null,
   _writeMaskCore: null as any,
   _writeMaskRestore: null as (() => void) | null,
   _updateHookModel: null as any,
@@ -3448,6 +3450,7 @@ export const Live2DManager = {
           paramRef !== null &&
           this._lipSyncActive &&
           this._inModelUpdate &&
+          !this._writingMouth &&
           this._isMouthParam(paramRef, coreModel)
         ) {
           return undefined;
@@ -3472,6 +3475,14 @@ export const Live2DManager = {
     if (!model) return;
     if (this._updateHookModel === model) return;
 
+    if (this._mouthHookOff) {
+      try {
+        this._mouthHookOff();
+      } catch {
+        // ignore
+      }
+      this._mouthHookOff = null;
+    }
     if (this._updateHookRestore) {
       try {
         this._updateHookRestore();
@@ -3486,8 +3497,34 @@ export const Live2DManager = {
     const updater = internal?.update;
     if (typeof updater !== 'function') return;
 
-    const rawUpdate = updater.bind(internal);
     const self = this;
+    // 口型要在 coreModel.update() 之前写：beforeModelUpdate 在动作/表情之后、
+    // 模型更新之前触发，这样当帧就能看到；写在 update 之后再下一帧就会被动作盖回去。
+    let hookedByEvent = false;
+    if (typeof internal?.on === 'function' && typeof internal?.off === 'function') {
+      const applyMouth = () => {
+        if (!self._lipSyncActive) return;
+        self._writingMouth = true;
+        try {
+          self._applyMouthValueToModel(model);
+        } catch {
+          // ignore
+        } finally {
+          self._writingMouth = false;
+        }
+      };
+      internal.on('beforeModelUpdate', applyMouth);
+      this._mouthHookOff = () => {
+        try {
+          internal.off('beforeModelUpdate', applyMouth);
+        } catch {
+          // ignore
+        }
+      };
+      hookedByEvent = true;
+    }
+
+    const rawUpdate = updater.bind(internal);
     internal.update = function (...args: any[]) {
       self._inModelUpdate = true;
       let ret: any;
@@ -3500,7 +3537,8 @@ export const Live2DManager = {
         } catch {
           // ignore
         }
-        if (self._lipSyncActive) {
+        // 没有 beforeModelUpdate 事件的运行时才退回旧写法。
+        if (!hookedByEvent && self._lipSyncActive) {
           try {
             self._applyMouthValueToModel(model);
           } catch {
@@ -3608,6 +3646,15 @@ export const Live2DManager = {
     }
     this._updateHookModel = null;
     this._updateHookRestore = null;
+    if (this._mouthHookOff) {
+      try {
+        this._mouthHookOff();
+      } catch {
+        // ignore
+      }
+    }
+    this._mouthHookOff = null;
+    this._writingMouth = false;
     this._manualMouthParamEnabled = false;
     this._manualMouthParamIds = [];
     this._manualMouthParamIdSet.clear();

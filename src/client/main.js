@@ -315,6 +315,32 @@ export function apply(ctx) {
       guide: () => guide.getState(),
       talking: () => Live2DManager.isTalking(),
       mouth: () => Live2DManager._mouthCurrentValue,
+      model: () => Boolean(Live2DManager.model),
+      param: (id) => {
+        try {
+          const core = Live2DManager.model?.internalModel?.coreModel
+          const index = core?.getParameterIndex?.(id)
+          if (!(index >= 0)) return null
+          return core.getParameterValueByIndex(index)
+        } catch {
+          return null
+        }
+      },
+      expressions: () => {
+        try {
+          const manager = Live2DManager.model?.internalModel?.motionManager?.expressionManager
+          return (manager?.definitions || []).map((item) => item.Name || item.name || '').filter(Boolean)
+        } catch {
+          return []
+        }
+      },
+      motions: () => {
+        try {
+          return Object.keys(Live2DManager.model?.internalModel?.motionManager?.definitions || {})
+        } catch {
+          return []
+        }
+      },
     }
   }
 

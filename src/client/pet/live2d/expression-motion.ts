@@ -43,7 +43,9 @@ export const EXPRESSION_LIVE2D_MAP: Record<
     motions: ['shy', 'embarrassed', 'blush', 'haixiu', 'shame', '害羞', 'mood_shy'],
   },
   思考: {
-    expressions: ['think', 'ponder', 'confused', 'wonder', 'curious', 'calm'],
+    // 有些模型没有「思考」表情（calm 是空参数），退到微笑至少能看见变化；
+    // 头部动作仍用 headtilt/思考组，表情与姿势一起给反馈。
+    expressions: ['think', 'ponder', 'confused', 'wonder', 'curious', 'joy'],
     motions: ['think', 'ponder', 'wonder', 'sikao', '思考', 'headtilt', 'mood_anxious'],
   },
   大笑: {
