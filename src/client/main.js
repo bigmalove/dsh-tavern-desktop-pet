@@ -19,6 +19,8 @@ import { getVariables, installSillyTavernShims, onVariablesChanged, uninstallSil
 import { attachTavern, detachTavern } from './bridge/tavern.js'
 import { clearPetActions, openPetSettings, petActions, teasePet } from './bridge/actions.js'
 import { createGuidePresenter } from './guide/presenter.js'
+import { guide } from './guide/session.js'
+import { Live2DManager } from './pet/live2d/manager'
 import GuideDock from './pet/ui/GuideDock.vue'
 import PetContainer from './pet/ui/PetContainer.vue'
 
@@ -288,6 +290,14 @@ export function apply(ctx) {
   }
 
   console.log('[dsh-tavern-desktop-pet] 已挂载', { gameId: gameId || '(未打开任何局)' })
+  if (typeof window !== 'undefined') {
+    window.__dshTavernPetDebug = {
+      version: '0.3.2',
+      guide: () => guide.getState(),
+      talking: () => Live2DManager.isTalking(),
+      mouth: () => Live2DManager._mouthCurrentValue,
+    }
+  }
 
   // 卡片工作台：把「提问轮」在主区折叠成一行。跟着设置与桌宠开关走：
   // 桌宠被关掉、引导关掉、折叠关掉时注销，主区立刻恢复原样。

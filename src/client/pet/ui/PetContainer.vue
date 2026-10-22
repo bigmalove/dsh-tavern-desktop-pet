@@ -61,7 +61,7 @@ import {
   stopSpeaking as stopTavernSpeech,
 } from '../../bridge/tavern';
 import { guideDockActive } from '../../guide/dock-state';
-import { guide } from '../../guide/session';
+import { guide, stopGuideTalking } from '../../guide/session';
 import { splitZhJaForDisplayAndTts } from '../chat/bilingual-text';
 import { Commentator } from '../chat/commentator';
 import { parseEmotionCotText } from '../chat/emotion-cot';
@@ -313,6 +313,32 @@ function onModelBrowserLoad(url: string): void {
   void onModelChange(url);
 }
 
+let tauntTalkTimer: number | null = null;
+
+/** 吐槽气泡的说话口型：流式时保持，两秒没有新字或说完后停下。 */
+function driveTauntMouth(text: string, done: boolean): void {
+  const body = String(text || '').trim();
+  if (!body) return;
+  if (!Live2DManager.isTalking()) Live2DManager.startTalking();
+  if (tauntTalkTimer !== null) {
+    window.clearTimeout(tauntTalkTimer);
+    tauntTalkTimer = null;
+  }
+  tauntTalkTimer = window.setTimeout(() => {
+    tauntTalkTimer = null;
+    Live2DManager.stopTalking();
+  }, done ? Math.min(9000, Math.max(1200, body.length * 140)) : 2400);
+}
+
+function stopAllTalking(): void {
+  if (tauntTalkTimer !== null) {
+    window.clearTimeout(tauntTalkTimer);
+    tauntTalkTimer = null;
+  }
+  Live2DManager.stopTalking();
+  stopGuideTalking();
+}
+
 function onManualChat(message: string): void {
   // 工作台里 CHAT 变成「聚焦输入框」：引导员的工作是让玩家回答主对话，
   // 不是另开一段与桌宠的闲聊（那条会走宿主吐槽模型）。
@@ -333,6 +359,7 @@ function closePet(closeSettingsPanel = true): void {
   clearModelLoadingHideTimer();
   clearStatusCheckTimer();
   clearViewportResizeSyncTimer();
+  stopAllTalking();
   guide.setVisible(false);
 
   showMenu.value = false;
@@ -704,6 +731,7 @@ async function initPet() {
 
       bubbleText.value = splitResult.displayText;
       bubbleDone.value = isDone;
+      driveTauntMouth(splitResult.displayText, isDone);
 
       if (!isDone) return;
       const finalText = String(splitResult.displayText || '').trim();
@@ -892,6 +920,7 @@ watch(
   () => settings.value.guideEnabled,
   (enabled) => {
     guide.setEnabled(enabled !== false);
+    if (enabled === false) stopAllTalking();
   },
 );
 
@@ -1009,6 +1038,7 @@ onUnmounted(() => {
   petClosed = true;
   initTaskId++;
   guide.stop();
+  stopAllTalking();
   stopGuideSubscribe?.();
   stopGuideSubscribe = null;
   clearPetActions();

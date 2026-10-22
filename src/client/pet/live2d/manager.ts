@@ -79,6 +79,8 @@ export const Live2DManager = {
   _mouthParamWarned: false,
   _mouthCurrentValue: 0,
   _lipSyncActive: false,
+  _talkTimer: null as ReturnType<typeof setInterval> | null,
+  _talkStep: 0,
   _inModelUpdate: false,
   _writeMaskCore: null as any,
   _writeMaskRestore: null as (() => void) | null,
@@ -3302,6 +3304,61 @@ export const Live2DManager = {
     return false;
   },
 
+  /**
+   * 没有配音时的「说话」口型：按时间生成开合，句读处短暂闭嘴。
+   * 只驱动嘴部参数，和 TTS 是否配置无关；重复调用保持同一个循环。
+   */
+  startTalking(): boolean {
+    if (this._talkTimer !== null) return true;
+    if (!this.model?.internalModel?.coreModel) return false;
+    this._setLipSyncActive(true);
+    this._talkStep = 0;
+    try {
+      (this._top() as any).document?.documentElement?.setAttribute?.('data-pet-talking', '1');
+    } catch {
+      // ignore
+    }
+    this._talkTimer = setInterval(() => {
+      if (!this.model) {
+        this.stopTalking();
+        return;
+      }
+      this._talkStep += 1;
+      const t = this._talkStep * 0.07;
+      // 两层正弦叠加：快开合像音节，慢包络像停顿；偶尔整帧闭嘴。
+      let value = 0.12 + 0.8 * Math.abs(Math.sin(t * 11.3 + 0.6)) * (0.55 + 0.45 * Math.abs(Math.sin(t * 3.7 + 1.1)));
+      if (Math.sin(t * 6.1) < -0.82) value = 0.05;
+      this.setMouthOpen('__talk__', Math.max(0.03, Math.min(1, value)));
+    }, 70);
+    return true;
+  },
+
+  stopTalking(): void {
+    if (this._talkTimer !== null) {
+      clearInterval(this._talkTimer);
+      this._talkTimer = null;
+    }
+    try {
+      (this._top() as any).document?.documentElement?.removeAttribute?.('data-pet-talking');
+    } catch {
+      // ignore
+    }
+    if (!this.model) {
+      this._lipSyncActive = false;
+      return;
+    }
+    try {
+      this.setMouthOpen('__talk__', 0);
+    } catch {
+      // ignore
+    }
+    this._setLipSyncActive(false);
+  },
+
+  isTalking(): boolean {
+    return this._talkTimer !== null;
+  },
+
   _isMouthParam(paramIdOrIndex: string | number, coreModel: any): boolean {
     const preset = [
       'parammouthopeny',
@@ -3499,6 +3556,15 @@ export const Live2DManager = {
    * 销毁模型
    */
   destroyModel(): void {
+    if (this._talkTimer !== null) {
+      clearInterval(this._talkTimer);
+      this._talkTimer = null;
+    }
+    try {
+      (this._top() as any).document?.documentElement?.removeAttribute?.('data-pet-talking');
+    } catch {
+      // ignore
+    }
     this._clearAutoMotionLoop();
     this.stopBuiltinMotion();
     this._setBuiltinMotionFrameState(null);
