@@ -15,6 +15,7 @@
       :is-done="true"
       :auto-close-delay-seconds="-1"
       :status="true"
+      :strip="statusStrip"
     />
     <SettingsPanel
       :visible="showSettings"
@@ -154,6 +155,13 @@ let statusBubbleTimer: number | null = null;
 // 「等你回答」时不出现。旧版 Tavern 没有工作状态接口，这个模式不生效（设置里灰掉）。
 const workStatusSupported = supportsWorkStatus();
 const fixedMode = computed(() => workStatusSupported && settings.value.petDisplayMode === 'generating');
+// 手机 / 窄屏：桌宠默认缩小一半；固定模式的进度气泡改成输入框上方右侧的一条长条。
+const compactLayout = ref(Live2DStage.isCompactLayout());
+function updateCompactLayout(): void {
+  const next = Live2DStage.isCompactLayout();
+  if (next !== compactLayout.value) compactLayout.value = next;
+}
+const statusStrip = computed(() => fixedMode.value && compactLayout.value);
 const RUN_LINGER_MS = 3000;
 const RUN_TRAIL_MAX = 5;
 const runActive = ref(false);
@@ -207,7 +215,10 @@ function trackRun(status: { state?: string; tool?: string; role?: string } | nul
     if (key !== runLastStepKey) {
       runLastStepKey = key;
       runStep.value += 1;
-      runTrail.value = [...runTrail.value, step].slice(-RUN_TRAIL_MAX);
+      // 时间线里相邻同名的步骤只记一次（截图里的「submit_story → submit_story」）。
+      if (runTrail.value[runTrail.value.length - 1] !== step) {
+        runTrail.value = [...runTrail.value, step].slice(-RUN_TRAIL_MAX);
+      }
     }
     return;
   }
@@ -243,8 +254,15 @@ function syncPetHidden(): void {
   Live2DStage.setHidden(shouldHidePet());
 }
 
+/**
+ * 实际用的缩放：固定模式用默认大小；手机（窄屏）上默认大小再缩一半。
+ * 常驻模式下玩家调过缩放就按玩家的来，窄屏也不动。
+ */
 function effectivePetScale(): number {
-  return fixedMode.value ? DEFAULTS.PET_SCALE : normalizePetScale(settings.value.petScale);
+  const saved = normalizePetScale(settings.value.petScale);
+  const base = fixedMode.value ? DEFAULTS.PET_SCALE : saved;
+  const isDefault = fixedMode.value || Math.abs(saved - DEFAULTS.PET_SCALE) < 1e-6;
+  return compactLayout.value && isDefault ? base / 2 : base;
 }
 
 function applyStageScale(): void {
@@ -842,6 +860,7 @@ function bindViewportResizeRecovery(): void {
   const top = getTopWindow();
 
   boundWindowResizeHandler = () => {
+    updateCompactLayout();
     scheduleViewportResizeSync('window-resize');
   };
 
@@ -856,6 +875,7 @@ function bindViewportResizeRecovery(): void {
   if (!viewport) return;
 
   boundVisualViewportResizeHandler = () => {
+    updateCompactLayout();
     scheduleViewportResizeSync('visual-viewport-resize');
   };
 
@@ -1216,6 +1236,12 @@ function onBubbleHidden() {
 
 watch(monitorConfig, (config) => {
   ChatMonitor.updateConfig(config);
+});
+
+// 在窄屏 / 宽屏之间切换（转屏、拖窗口）：默认大小跟着变。
+watch(compactLayout, () => {
+  if (petClosed) return;
+  applyStageScale();
 });
 
 // 切换显示方式：固定 ↔ 常驻。不改存下的位置和缩放，切回常驻时原样恢复。

@@ -106,7 +106,7 @@ export const Live2DStage = {
     const desktopX = rect.left - width * 0.7;
     let x: number;
     let y: number;
-    if (desktopX >= 4) {
+    if (!this.isCompactLayout() && desktopX >= 4) {
       x = desktopX;
       y = rect.top - height - 4;
     } else {
@@ -163,6 +163,17 @@ export const Live2DStage = {
 
   isFixedMode(): boolean {
     return this._anchored;
+  },
+
+  /** 窄屏（手机）布局：桌宠缩小、站输入框左上方，进度气泡改成输入框上方右侧的长条。 */
+  isCompactLayout(): boolean {
+    try {
+      const top = this._top();
+      const width = top.innerWidth || top.document.documentElement.clientWidth || 0;
+      return width > 0 && width <= 640;
+    } catch {
+      return false;
+    }
   },
 
   _applySavedPosition(position?: { x: number; y: number }): void {

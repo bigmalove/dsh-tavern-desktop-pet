@@ -356,7 +356,7 @@ export function apply(ctx) {
   console.log('[dsh-tavern-desktop-pet] 已挂载', { gameId: gameId || '(未打开任何局)' })
   if (typeof window !== 'undefined') {
     window.__dshTavernPetDebug = {
-      version: '0.7.0',
+      version: '0.7.1',
       guide: () => guide.getState(),
       talking: () => Live2DManager.isTalking(),
       mouth: () => Live2DManager._mouthCurrentValue,

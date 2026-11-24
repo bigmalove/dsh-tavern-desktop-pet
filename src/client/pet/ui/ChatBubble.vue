@@ -2,10 +2,14 @@
   <div
     v-if="visible"
     class="chat-bubble"
-    :class="{ 'is-guide': guide, 'is-status': status }"
+    :class="{ 'is-guide': guide, 'is-status': status, 'is-strip': isStrip }"
     :style="bubbleStyle"
   >
-    <div class="bubble-content" :class="{ 'is-guide': guide, 'is-status': status }" :role="status ? 'status' : undefined">
+    <div
+      class="bubble-content"
+      :class="{ 'is-guide': guide, 'is-status': status, 'is-strip': isStrip }"
+      :role="status ? 'status' : undefined"
+    >
       <button
         v-if="isDone && !guide && !status"
         type="button"
@@ -127,6 +131,8 @@ const props = defineProps<{
   choiceDisabled?: boolean;
   // 工作状态气泡：只显示一行短句，不自动关闭、不显示关闭按钮和光标。
   status?: boolean;
+  // 手机上「仅生成时显示」的进度：贴在输入框上方、桌宠右侧的一条长条，而不是头顶小胶囊。
+  strip?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -138,6 +144,60 @@ const visible = ref(false);
 const displayText = ref('');
 const bubbleStyle = ref<Record<string, string>>({});
 const optionList = computed(() => (props.guide && Array.isArray(props.options) ? props.options : []));
+const isStrip = computed(() => props.status === true && props.strip === true);
+
+/** 长条里第一行把「短句」和「第 N 步 · 已用」并成一行，时间线放第二行。 */
+function toStripText(text: string): string {
+  const lines = String(text || '').split('\n').map((line) => line.trim()).filter(Boolean);
+  if (lines.length <= 1) return lines.join('');
+  return [lines[0] + ' · ' + lines[1], ...lines.slice(2)].join('\n');
+}
+
+/** 输入框卡片的位置（找不到返回 null）。 */
+function getComposerRect(doc: Document): DOMRect | null {
+  try {
+    const card =
+      (doc.querySelector('[data-composer-card]') as HTMLElement | null) ||
+      (typeof document !== 'undefined' && document !== doc
+        ? (document.querySelector('[data-composer-card]') as HTMLElement | null)
+        : null);
+    const rect = card?.getBoundingClientRect?.();
+    return rect && rect.width > 0 && rect.height > 0 ? rect : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 模型可见内容的右边缘；没有包围盒时用舞台右边往回收一点（模型在舞台里居中，两侧有留白）。 */
+function getModelRightEdge(rect: DOMRect): number {
+  const model = Live2DManager.model as any;
+  try {
+    const bounds = model?.getBounds?.();
+    const x = getFiniteNumber(bounds?.x);
+    const width = getFiniteNumber(bounds?.width);
+    if (x !== null && width !== null && width > 0) return rect.left + x + width;
+  } catch {
+    /* ignore */
+  }
+  return rect.left + rect.width * 0.8;
+}
+
+/** 手机上的进度长条：输入框正上方，从桌宠右边一直铺到输入框右沿。 */
+function updateStripPosition(top: Window, stageRect: DOMRect | undefined, vw: number): boolean {
+  const composer = getComposerRect(top.document);
+  if (!composer) return false;
+  const right = Math.min(vw - EDGE_PADDING, composer.right);
+  const petRight = stageRect && stageRect.width > 0 ? getModelRightEdge(stageRect) + 4 : composer.left;
+  let left = Math.max(composer.left, EDGE_PADDING, petRight);
+  // 太窄就不躲桌宠了，至少留 160px 给字。
+  if (right - left < 160) left = Math.max(EDGE_PADDING, right - 160);
+  bubbleStyle.value = {
+    left: `${Math.round(left)}px`,
+    top: `${Math.round(composer.top - 6)}px`,
+    width: `${Math.round(Math.max(120, right - left))}px`,
+  };
+  return true;
+}
 const choiceLocked = computed(() => props.choiceDisabled === true);
 
 const HEAD_ANCHOR_RATIO = 0.2;
@@ -210,6 +270,8 @@ function updateBubblePosition(): void {
     const rect = stage?.getBoundingClientRect?.();
     const vw = top.innerWidth || top.document.documentElement.clientWidth || 0;
     const vh = top.innerHeight || top.document.documentElement.clientHeight || 0;
+
+    if (isStrip.value && updateStripPosition(top, rect, vw)) return;
 
     if (rect && rect.width > 0 && rect.height > 0) {
       const anchor = getModelHeadAnchor(rect);
@@ -310,7 +372,7 @@ function syncBubbleState(): void {
     const statusText = String(props.text || '');
     if (statusText) {
       visible.value = true;
-      displayText.value = statusText;
+      displayText.value = isStrip.value ? toStripText(statusText) : statusText;
       stopLoadingAnimation();
       stopAutoCloseTimer();
       startPositionSync();
@@ -359,7 +421,14 @@ function syncBubbleState(): void {
 }
 
 watch(
-  [() => props.text, () => props.isDone, () => props.autoCloseDelaySeconds, () => props.guide, () => props.options],
+  [
+    () => props.text,
+    () => props.isDone,
+    () => props.autoCloseDelaySeconds,
+    () => props.guide,
+    () => props.options,
+    () => props.strip,
+  ],
   syncBubbleState,
   { immediate: true, deep: true },
 );
@@ -493,6 +562,26 @@ onUnmounted(() => {
 
 .chat-bubble.is-status .bubble-arrow {
   display: none;
+}
+
+/* 手机上「仅生成时显示」：输入框上方、桌宠右侧的长条，左下角对齐（left/top/width 由脚本给）。 */
+.chat-bubble.is-strip {
+  max-width: none;
+  transform: translate(0, -100%);
+}
+
+.bubble-content.is-strip {
+  padding: 6px 12px;
+  border-radius: var(--dsw-radius-md, 12px);
+  font-size: 12px;
+  line-height: 1.5;
+
+  .bubble-text {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
 }
 
 /* 卡片工作台引导：比吐槽气泡宽，内容可滚动，选项是一排按钮。 */
