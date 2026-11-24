@@ -36,6 +36,10 @@ export const Live2DStage = {
   _interactionSyncTimer: null as number | null,
   _pixelReadBuffer: null as Uint8Array | null,
   _lastClampLogAt: 0,
+  // 没拖过时跟着输入框走；拖过就记住玩家的位置。
+  _anchored: false,
+  _anchorTimer: null as number | null,
+  _hidden: false,
 
   _clampPosition(
     x: number,
@@ -64,9 +68,102 @@ export const Live2DStage = {
     return { x: clampedX, y: clampedY, clamped: clampedX !== safeX || clampedY !== safeY };
   },
 
+  /**
+   * 默认位置贴着输入框：桌面端在输入框左侧、底边与输入框顶边齐平；
+   * 窄屏（输入框左边放不下）时站在输入框左上角。玩家拖动过就不再跟随。
+   */
+  _anchorToComposer(): void {
+    if (!this._anchored || !this.container || this.mountMode !== 'floating') return;
+    const top = this._top();
+    const doc = top.document;
+    let card: Element | null = null;
+    try {
+      card =
+        doc.querySelector('[data-composer-card]') ||
+        (typeof document !== 'undefined' && document !== doc ? document.querySelector('[data-composer-card]') : null);
+    } catch {
+      card = null;
+    }
+    const rect = (card as HTMLElement | null)?.getBoundingClientRect?.();
+    const box = this.container.getBoundingClientRect();
+    const width = box.width > 0 ? box.width : parseFloat(this.container.style.width || '0') || 0;
+    const height = box.height > 0 ? box.height : parseFloat(this.container.style.height || '0') || 0;
+    if (!rect || rect.width <= 0 || rect.height <= 0) {
+      // 没找到输入框（页面还没渲染或旧版 Tavern）：退回右下角。
+      if (this.container.style.right !== '20px') {
+        this.container.style.left = '';
+        this.container.style.top = '';
+        this.container.style.right = '20px';
+        this.container.style.bottom = '20px';
+      }
+      return;
+    }
+    const viewportWidth = top.innerWidth || doc.documentElement.clientWidth || 0;
+    const viewportHeight = top.innerHeight || doc.documentElement.clientHeight || 0;
+    // 桌面端（截图位置）：站在输入框左上角外侧，身子大半露在输入框左边、脚踩输入框顶边；
+    // 窄屏（左边放不下）：站在输入框左上角内侧，脚踩输入框顶边。
+    const desktopX = rect.left - width * 0.7;
+    let x: number;
+    let y: number;
+    if (desktopX >= 4) {
+      x = desktopX;
+      y = rect.top - height - 4;
+    } else {
+      // 模型在舞台里水平居中，舞台左边留白，往左挪一点让身子贴着输入框左沿。
+      x = Math.max(0, rect.left - width * 0.3);
+      y = rect.top - height;
+    }
+    x = Math.max(0, Math.min(x, Math.max(0, viewportWidth - width)));
+    y = Math.max(0, Math.min(y, Math.max(0, viewportHeight - height)));
+    const nextLeft = `${Math.round(x)}px`;
+    const nextTop = `${Math.round(y)}px`;
+    if (this.container.style.left === nextLeft && this.container.style.top === nextTop) return;
+    this.container.style.left = nextLeft;
+    this.container.style.top = nextTop;
+    this.container.style.right = 'auto';
+    this.container.style.bottom = 'auto';
+  },
+
+  _startAnchorTimer(): void {
+    this._stopAnchorTimer();
+    this._anchorToComposer();
+    // 输入框会随侧栏开合、窗口缩放、选项栏出现而移动，轮询比挂一堆观察器省事。
+    this._anchorTimer = window.setInterval(() => this._anchorToComposer(), 400);
+  },
+
+  _stopAnchorTimer(): void {
+    if (this._anchorTimer === null) return;
+    window.clearInterval(this._anchorTimer);
+    this._anchorTimer = null;
+  },
+
+  /** 回到输入框旁的默认位置（并恢复跟随）。 */
+  anchorToComposer(): void {
+    this._anchored = true;
+    this._anchorToComposer();
+  },
+
+  isAnchored(): boolean {
+    return this._anchored;
+  },
+
+  /** 「等你回答」等场合临时藏起浮窗桌宠；不销毁模型，恢复时原样出现。停靠到工作台时不受影响。 */
+  setHidden(hidden: boolean): void {
+    if (this._hidden === hidden) return;
+    this._hidden = hidden;
+    if (!this.container || this.mountMode !== 'floating') return;
+    this.container.style.visibility = hidden ? 'hidden' : 'visible';
+    this._syncInteractionLayerBounds();
+  },
+
+  isHidden(): boolean {
+    return this._hidden;
+  },
+
   _shouldClampCurrentPosition(): boolean {
     if (!this.container) return false;
     if (this.mountMode === 'preview') return false;
+    if (this._anchored) return false;
 
     // 默认位置使用 right/bottom 固定，无需在 resize 时写入 left/top（避免把默认位置持久化成数值）
     const hasCustom = this.container.style.right === 'auto' || this.container.style.bottom === 'auto';
@@ -121,6 +218,11 @@ export const Live2DStage = {
 
   _clampContainerToViewport(options: { width: number; height: number }, reason: string): void {
     if (!this.container) return;
+    // 跟随输入框时位置由锚点算，别把它写成「玩家自定义位置」。
+    if (this._anchored && this.mountMode === 'floating') {
+      this._anchorToComposer();
+      return;
+    }
     const rect = this.container.getBoundingClientRect();
     const size = this._getContainerRectSize(options);
     const top = this._top();
@@ -282,7 +384,7 @@ export const Live2DStage = {
       layer.style.cursor = 'default';
     };
 
-    if (this.mountMode === 'preview') {
+    if (this.mountMode === 'preview' || this._hidden) {
       disableLayer();
       return;
     }
@@ -464,6 +566,7 @@ export const Live2DStage = {
       if (!state.dragging) {
         if (dist < 8) return;
         state.dragging = true;
+        this._anchored = false;
         $container.addClass(this._dragClass);
 
         container.style.left = `${state.startLeft}px`;
@@ -677,6 +780,9 @@ export const Live2DStage = {
     }
 
     top.document.body.appendChild(this.container);
+    this._anchored = !hasSavedPosition;
+    if (this._hidden) this.container.style.visibility = 'hidden';
+    this._startAnchorTimer();
 
     // 创建 canvas
     this.canvas = top.document.createElement('canvas');
@@ -758,6 +864,7 @@ export const Live2DStage = {
           handle: '.desktop-pet-interaction-layer',
           start: (_e: any, ui: any) => {
             $container.addClass(this._dragClass);
+            this._anchored = false;
 
             const rect = this.container?.getBoundingClientRect?.();
             if (!rect) return;
@@ -1066,6 +1173,7 @@ export const Live2DStage = {
     this.container.style.cssText = entry.styleText;
     this._onPositionChange = entry.onPositionChange;
     this.mountMode = this.mountStack.length > 0 ? 'preview' : 'floating';
+    this.container.style.visibility = this._hidden && this.mountMode === 'floating' ? 'hidden' : 'visible';
     this._syncInteractionLayerBounds();
 
     try {
@@ -1140,6 +1248,7 @@ export const Live2DStage = {
     this.hideLoadingProgress();
     this._unbindWindowResize();
     this._stopInteractionSyncTimer();
+    this._stopAnchorTimer();
     this.mountStack = [];
     this.mountMode = 'floating';
     this._pendingFloatingResize = null;

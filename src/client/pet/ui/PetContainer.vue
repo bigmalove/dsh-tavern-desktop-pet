@@ -43,7 +43,7 @@
         <div class="browser-dialog-header">
           <div class="browser-dialog-heading">
             <h3>在线模型库</h3>
-            <span>Eikanya/Live2d-model</span>
+            <span>{{ settings.modelRepo || '未设置地址' }}</span>
           </div>
           <button class="close-btn" type="button" aria-label="关闭在线模型库" @click="showModelBrowser = false">
             <svg
@@ -164,6 +164,8 @@ const guideChoiceDisabled = computed(() => Boolean(guideState.value?.choiceDisab
 // 引导员和吐槽气泡优先；它们在时这条让位，免得两个气泡叠在一起。
 const statusBubbleText = computed(() => {
   if (guideActive.value || guideBubble.value || String(bubbleText.value || '').trim()) return '';
+  // 「等你回答」时浮窗桌宠藏起来了，头顶气泡也别单独飘着。
+  if (String(workStatus.value?.state || '') === 'waiting') return '';
   return statusBubbleWanted.value;
 });
 
@@ -244,6 +246,9 @@ function startStatusBubbleRotation(): void {
 function applyWorkStatus(next: any): void {
   const status = next && typeof next === 'object' ? next : null;
   workStatus.value = status;
+  // 「等你回答」时浮窗桌宠先藏起来，别挡着玩家看题、打字；状态一变就回来。
+  // 停靠在卡片工作台里时由停靠区自己管，不受影响。
+  Live2DStage.setHidden(String(status?.state || '') === 'waiting');
   if (!status) {
     statusBubbleWanted.value = '';
     lastWorkBubbleKey = '';
@@ -313,6 +318,7 @@ function bindWorkStatus(): void {
 function stopWorkStatusWatch(): void {
   stopWorkStatus?.();
   stopWorkStatus = null;
+  Live2DStage.setHidden(false);
   stopStatusBubbleRotation();
   workStatusSerial++;
   workStatus.value = null;

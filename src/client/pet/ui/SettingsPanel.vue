@@ -128,7 +128,7 @@
                   </button>
                   <button class="model-btn browse-btn" type="button" @click="showBrowser = true">浏览在线模型库</button>
                 </div>
-                <div class="hint">三套大肥鱼形象随插件分发，离线可用；点一下立刻切换。</div>
+                <div class="hint">三套大肥鱼形象随插件分发，离线可用；点一下立刻切换。在线模型库不内置地址，打开后填写自己的 GitHub 仓库并保存。</div>
               </div>
 
               <div class="form-group">
@@ -599,7 +599,7 @@
         <div class="browser-dialog-header">
           <div class="browser-dialog-heading">
             <h3>在线模型库</h3>
-            <span>Eikanya/Live2d-model</span>
+            <span>{{ settings.modelRepo || '未设置地址' }}</span>
           </div>
           <button class="close-btn" type="button" aria-label="关闭在线模型库" @click="showBrowser = false">
             <svg
@@ -636,12 +636,11 @@ import {
   EMPTY_MOTION_GROUP_VALUE,
   LOCAL_LIVE2D_MODEL_PATH,
   LOCAL_LIVE2D_MODEL_SLOT_ID,
-  RECOMMENDED_MODELS,
   SCRIPT_NAME,
   type EmotionTag,
   type Live2DRuntimeType,
 } from '../core/constants';
-import { findBundledModel, getBundledModelOptions } from '../core/bundled-model';
+import { findBundledModel, getBundledModelOptions, getBundledModelUrl } from '../core/bundled-model';
 import { createDefaultEmotionConfigs, parseAliasesText, type EmotionConfig } from '../core/emotion';
 import { useSettingsStore } from '../core/settings';
 import { deleteLive2DModel, getLive2DModel, hasLive2DModel, type StoredLive2DModel } from '../db/live2d-models';
@@ -823,10 +822,7 @@ const petScaleLabel = computed(() => toBoundedNumber(settings.value.petScale, DE
 ensureNumericSettingsIntegrity();
 
 const recommendedModels = computed(() => {
-  return [
-    ...getBundledModelOptions().map((model) => ({ name: model.name, path: model.path })),
-    ...RECOMMENDED_MODELS.map((model) => ({ name: model.name, path: model.path })),
-  ];
+  return getBundledModelOptions().map((model) => ({ name: model.name, path: model.path }));
 });
 
 // 旧地址（换端口/插件目录前存下的）也算同一套内置形象，避免高亮丢失。
@@ -1848,9 +1844,11 @@ async function clearUploadedModel(): Promise<void> {
     localModelStatus.value = '已清除本地模型槽位。';
 
     if (settings.value.modelPath === LOCAL_LIVE2D_MODEL_PATH) {
-      settings.value.modelPath = DEFAULTS.MODEL_PATH;
-      customModelUrl.value = DEFAULTS.MODEL_PATH;
-      emit('model-change', DEFAULTS.MODEL_PATH);
+      // 清掉本地槽位后回到内置形象（女仆装）。
+      const fallback = getBundledModelUrl() || DEFAULTS.MODEL_PATH;
+      settings.value.modelPath = fallback;
+      customModelUrl.value = fallback;
+      emit('model-change', fallback);
     }
     toastr.success('已清除本地模型');
   } catch (e) {

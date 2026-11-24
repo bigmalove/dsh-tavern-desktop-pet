@@ -84,12 +84,16 @@ const SettingsSchema = z
     // Live2D 配置
     modelPath: z.string().default(DEFAULTS.MODEL_PATH),
     useCdn: z.boolean().default(true),
+    // 在线模型库浏览的 GitHub 仓库（owner/repo[@分支][/目录]）；插件不内置，玩家自己填。
+    modelRepo: z.string().default(''),
     petPosition: z
       .object({
         x: z.number().default(DEFAULTS.PET_POSITION.x),
         y: z.number().default(DEFAULTS.PET_POSITION.y),
       })
       .default({}),
+    // 默认位置改成贴着输入框后，旧版存下的右下角坐标要清一次（1 = 已迁移）。
+    petPositionVersion: z.number().default(0),
     petScale: z.number().min(0.1).max(3).default(DEFAULTS.PET_SCALE),
     autoMotionLoop: z.boolean().default(DEFAULTS.AUTO_MOTION_LOOP),
     doubleTapRandomMotionEnabled: z.boolean().default(DEFAULTS.DOUBLE_TAP_RANDOM_MOTION_ENABLED),
@@ -148,7 +152,7 @@ export const useSettingsStore = defineStore('desktop-pet-settings', () => {
   const raw = getVariables({ type: 'script', script_id: getScriptId() });
   const parsed = parseSettings(raw);
 
-  // 迁移旧的 Eikanya CDN 模型路径到新的 CDN
+  // 旧版 CDN 示例模型路径：清空，由 main 换成内置形象
   if (
     parsed.modelPath.includes('live2d-widget-model/') ||
     parsed.modelPath.includes('Live2D/Samples/')

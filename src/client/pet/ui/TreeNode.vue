@@ -93,7 +93,7 @@ async function loadChildren() {
   loading.value = true;
   childError.value = '';
   try {
-    children.value = await fetchDirectory(props.entry.path);
+    children.value = await fetchDirectory(props.entry.source, props.entry.path);
     loadedOnce.value = true;
   } catch (e: any) {
     if (e instanceof RateLimitError) {

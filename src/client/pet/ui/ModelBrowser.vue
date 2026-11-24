@@ -1,39 +1,58 @@
 <template>
   <div class="model-browser">
-    <!-- 搜索框 -->
-    <div class="search-box">
-      <input
-        type="text"
-        v-model="searchQuery"
-        placeholder="搜索已加载的目录..."
-      />
+    <!-- 模型库地址：插件不内置，玩家自己填并保存 -->
+    <div class="repo-box">
+      <div class="repo-row">
+        <input
+          type="text"
+          v-model="repoInput"
+          placeholder="GitHub 仓库，如 owner/repo、owner/repo@main/models 或仓库链接"
+          @keydown.enter="saveRepo"
+        />
+        <button class="btn btn-primary repo-btn" type="button" :disabled="!repoInput.trim()" @click="saveRepo">
+          保存并加载
+        </button>
+      </div>
+      <div class="repo-hint">插件不内置在线模型库：填一个存放 Live2D 模型的 GitHub 仓库地址，保存后会记住。</div>
     </div>
 
     <!-- 错误提示 -->
     <div v-if="errorMsg" class="error-bar">
       <span>{{ errorMsg }}</span>
-      <button class="retry-btn" @click="loadRoot">重试</button>
+      <button v-if="source" class="retry-btn" @click="loadRoot">重试</button>
     </div>
 
-    <!-- 树形列表 -->
-    <div class="tree-container">
-      <div v-if="rootLoading" class="loading-state">
-        <span class="spinner"></span> 加载中...
-      </div>
-      <template v-else>
-        <TreeNode
-          v-for="entry in filteredRootEntries"
-          :key="entry.path"
-          :entry="entry"
-          :depth="0"
-          :search-query="searchQuery"
-          @select-model="onSelectModel"
+    <template v-if="source">
+      <!-- 搜索框 -->
+      <div class="search-box">
+        <input
+          type="text"
+          v-model="searchQuery"
+          placeholder="搜索已加载的目录..."
         />
-        <div v-if="rootEntries.length === 0 && !rootLoading" class="empty-state">
-          该目录下暂无内容
+      </div>
+
+      <!-- 树形列表 -->
+      <div class="tree-container">
+        <div v-if="rootLoading" class="loading-state">
+          <span class="spinner"></span> 加载中...
         </div>
-      </template>
-    </div>
+        <template v-else>
+          <TreeNode
+            v-for="entry in filteredRootEntries"
+            :key="entry.path"
+            :entry="entry"
+            :depth="0"
+            :search-query="searchQuery"
+            @select-model="onSelectModel"
+          />
+          <div v-if="rootEntries.length === 0 && !rootLoading && !errorMsg" class="empty-state">
+            该目录下暂无内容
+          </div>
+        </template>
+      </div>
+    </template>
+    <div v-else class="tree-container empty-state">还没有设置模型库地址，先在上面填一个并保存。</div>
 
     <!-- 已选模型 & 操作 -->
     <div class="browser-footer">
@@ -58,9 +77,18 @@
 </template>
 
 <script setup lang="ts">
+import { storeToRefs } from 'pinia';
 import { ref, computed } from 'vue';
-import { fetchDirectory, buildCdnUrl, RateLimitError } from '../live2d/model-browser';
-import type { RepoEntry } from '../live2d/model-browser';
+import { useSettingsStore } from '../core/settings';
+import {
+  buildModelUrl,
+  fetchDirectory,
+  formatRepoSource,
+  parseRepoSource,
+  RateLimitError,
+  resolveRepoSource,
+} from '../live2d/model-browser';
+import type { RepoEntry, RepoSource } from '../live2d/model-browser';
 import TreeNode from './TreeNode.vue';
 
 const props = defineProps<{
@@ -72,6 +100,10 @@ const emit = defineEmits<{
   'load-model': [url: string];
 }>();
 
+const store = useSettingsStore();
+const { settings } = storeToRefs(store);
+const repoInput = ref(settings.value.modelRepo || '');
+const source = ref<RepoSource | null>(null);
 const rootEntries = ref<RepoEntry[]>([]);
 const rootLoading = ref(false);
 const errorMsg = ref('');
@@ -95,16 +127,36 @@ function onSelectModel(path: string) {
 }
 
 function confirmLoad() {
-  if (!selectedPath.value) return;
-  const cdnUrl = buildCdnUrl(selectedPath.value, props.useCdn);
-  emit('load-model', cdnUrl);
+  if (!selectedPath.value || !source.value) return;
+  emit('load-model', buildModelUrl(source.value, selectedPath.value, props.useCdn));
+}
+
+function saveRepo() {
+  const parsed = parseRepoSource(repoInput.value);
+  if (!parsed) {
+    errorMsg.value = '地址格式不对：请填 owner/repo、owner/repo@分支/目录，或 GitHub 仓库链接';
+    return;
+  }
+  const normalized = formatRepoSource(parsed);
+  repoInput.value = normalized;
+  settings.value.modelRepo = normalized;
+  void loadRoot();
 }
 
 async function loadRoot() {
-  rootLoading.value = true;
+  rootEntries.value = [];
+  selectedPath.value = '';
   errorMsg.value = '';
+  const parsed = parseRepoSource(settings.value.modelRepo);
+  source.value = parsed;
+  if (!parsed) return;
+
+  rootLoading.value = true;
   try {
-    rootEntries.value = await fetchDirectory('');
+    // 没写分支就先查默认分支，目录列表和模型地址要指向同一个分支。
+    const resolved = await resolveRepoSource(parsed);
+    source.value = resolved;
+    rootEntries.value = await fetchDirectory(resolved, resolved.basePath);
   } catch (e: any) {
     if (e instanceof RateLimitError) {
       errorMsg.value = e.message;
@@ -116,8 +168,8 @@ async function loadRoot() {
   }
 }
 
-// 初始加载根目录
-loadRoot();
+// 已保存过地址就直接加载；没保存过只显示输入框。
+void loadRoot();
 </script>
 
 <style lang="scss" scoped>
@@ -130,6 +182,32 @@ loadRoot();
   max-height: 60vh;
   color: var(--dsw-alias-label-primary, #141413);
   @include dsh.font;
+}
+
+.repo-box {
+  margin-bottom: 10px;
+
+  .repo-row {
+    display: flex;
+    gap: 8px;
+
+    input {
+      @include dsh.input-base;
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  .repo-btn {
+    flex: none;
+  }
+
+  .repo-hint {
+    margin-top: 6px;
+    color: var(--dsw-alias-label-tertiary, #827d75);
+    font-size: 12px;
+    line-height: 1.5;
+  }
 }
 
 .search-box {

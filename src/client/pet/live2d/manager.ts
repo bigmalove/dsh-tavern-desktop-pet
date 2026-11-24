@@ -1,7 +1,4 @@
 import {
-  EIKANYA_CDN_BASE,
-  EIKANYA_RAW_BASE,
-  LIVE2D_CDN_BASE,
   LOCAL_LIVE2D_MODEL_PATH_PREFIX,
   LOCAL_LIVE2D_MODEL_SLOT_ID,
   type Live2DRuntimeType,
@@ -1024,17 +1021,14 @@ export const Live2DManager = {
     return `${encodedPath}${queryPart.replace(/#/g, '%23')}`;
   },
 
-  _getMirrorEikanyaModelUrl(modelUrl: string): string | null {
+  /** GitHub raw 地址的 jsDelivr 镜像（jsDelivr 转 raw 由 _convertJsDelivrGhToRawCandidates 负责）。 */
+  _getMirrorGithubRawModelUrl(modelUrl: string): string | null {
     const url = String(modelUrl || '').trim();
-    if (!url) return null;
-
-    if (url.startsWith(EIKANYA_CDN_BASE)) {
-      return `${EIKANYA_RAW_BASE}${url.slice(EIKANYA_CDN_BASE.length)}`;
-    }
-    if (url.startsWith(EIKANYA_RAW_BASE)) {
-      return `${EIKANYA_CDN_BASE}${url.slice(EIKANYA_RAW_BASE.length)}`;
-    }
-    return null;
+    const match = url.match(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)$/i);
+    if (!match) return null;
+    const [, owner, repo, ref, filePath] = match;
+    if (ref === 'HEAD') return `https://cdn.jsdelivr.net/gh/${owner}/${repo}/${filePath}`;
+    return `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${ref}/${filePath}`;
   },
 
   _expandJsDelivrHosts(inputUrl: string): string[] {
@@ -1109,7 +1103,7 @@ export const Live2DManager = {
     };
 
     addBase(modelUrl);
-    const mirrorUrl = this._getMirrorEikanyaModelUrl(modelUrl);
+    const mirrorUrl = this._getMirrorGithubRawModelUrl(modelUrl);
     if (mirrorUrl) addBase(mirrorUrl);
 
     const candidates: string[] = [];
@@ -1859,14 +1853,11 @@ export const Live2DManager = {
         }
       } else {
         reportProgress(20, '解析远程模型地址');
-        let modelUrl: string;
-        if (modelPath.startsWith('http://') || modelPath.startsWith('https://') || modelPath.startsWith('/')) {
-          // 同源绝对路径（插件 assets 的 assetUrl）直接用，不要拼 CDN 前缀。
-          modelUrl = modelPath;
-        } else {
-          modelUrl = `${LIVE2D_CDN_BASE}${modelPath}`;
+        if (!(modelPath.startsWith('http://') || modelPath.startsWith('https://') || modelPath.startsWith('/'))) {
+          // 不再内置在线模型仓库，相对路径没有可拼的前缀。
+          throw new Error(`模型地址需要是完整 URL（http/https 开头）：${modelPath || '(空)'}`);
         }
-        modelUrl = this._normalizeRemoteUrl(modelUrl);
+        const modelUrl = this._normalizeRemoteUrl(modelPath);
 
         const modelUrlCandidates = this._buildModelUrlCandidates(modelUrl);
         for (let i = 0; i < modelUrlCandidates.length; i++) {

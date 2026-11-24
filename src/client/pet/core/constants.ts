@@ -16,9 +16,6 @@ export const LOCAL_LIVE2D_MODEL_SLOT_ID = 'default';
 export const LOCAL_LIVE2D_MODEL_PATH = `${LOCAL_LIVE2D_MODEL_PATH_PREFIX}${LOCAL_LIVE2D_MODEL_SLOT_ID}`;
 export const EMPTY_MOTION_GROUP_VALUE = '__desktop_pet_empty_motion_group__';
 
-/** Live2D CDN 基础地址（使用 pixi-live2d-display 测试资源） */
-export const LIVE2D_CDN_BASE = 'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/';
-
 /** SDK CDN 地址 */
 export const SDK_URLS = {
   PIXI: 'https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js',
@@ -42,18 +39,6 @@ export const SDK_URLS = {
     'https://gcore.jsdelivr.net/gh/bigmalove/galgame@main/dist/cubism5.js',
   ]),
 } as const;
-
-/** 内置推荐模型列表 */
-export const RECOMMENDED_MODELS = [
-  {
-    name: 'Haru (Cubism 4)',
-    path: 'haru/haru_greeter_t03.model3.json',
-  },
-  {
-    name: 'Shizuku (Cubism 2)',
-    path: 'shizuku/shizuku.model.json',
-  },
-] as const;
 
 /** 吐槽风格枚举 */
 export const COMMENT_STYLES = ['毒舌吐槽', '可爱卖萌', '冷静分析', '傲娇', '霸道宠溺', '直球小奶狗', '温柔爹系', '腹黑笑面虎', '清冷高岭之花', '慵懒狐狸', '病娇', '自定义'] as const;
@@ -94,15 +79,10 @@ export const API_SOURCES = [
   { value: 'openrouter', label: 'OpenRouter' },
 ] as const;
 
-/** Eikanya Live2D 模型仓库配置 */
-export const EIKANYA_REPO = 'Eikanya/Live2d-model';
-export const EIKANYA_API_BASE = 'https://api.github.com/repos/Eikanya/Live2d-model/contents/';
-export const EIKANYA_CDN_BASE = 'https://cdn.jsdelivr.net/gh/Eikanya/Live2d-model@master/';
-export const EIKANYA_RAW_BASE = 'https://raw.githubusercontent.com/Eikanya/Live2d-model/master/';
-
 /** 默认配置值 */
 export const DEFAULTS = {
-  MODEL_PATH: 'shizuku/shizuku.model.json',
+  // 空 = 用内置形象（女仆装），由 main 在挂载前换成运行时地址。
+  MODEL_PATH: '',
   PET_SCALE: 0.55,
   PET_POSITION: { x: -1, y: -1 }, // -1 表示使用默认位置
   AUTO_MOTION_LOOP: true,

@@ -243,6 +243,16 @@ export function apply(ctx) {
   const gameId = attachTavern({ tavernUi: ctx.tavernUi, sessions: ctx.sessions })
 
   const pinia = createPinia()
+  // 默认位置从右下角改到输入框旁边：旧版存下的坐标（多半是右下角）清一次，
+  // 让桌宠跟着输入框走；之后玩家再拖动就照常记住。
+  try {
+    const positionStore = useSettingsStore(pinia)
+    if (Number(positionStore.settings.petPositionVersion || 0) < 1) {
+      positionStore.updateSettings({ petPosition: { x: -1, y: -1 }, petPositionVersion: 1 })
+    }
+  } catch (error) {
+    console.warn('[dsh-tavern-desktop-pet] 桌宠位置迁移失败', error)
+  }
   // 内置形象：插件自带的大肥鱼 Live2D 三套装扮（女仆 / Claude / 铁盆，assets/live2d/）。
   // 旧版默认是 CDN 上的 shizuku，装过旧版的用户把那个默认值迁过来；玩家选过的内置
   // 装扮则跟着当前运行时地址走（换端口/插件目录后旧地址会失效）。
@@ -259,8 +269,14 @@ export function apply(ctx) {
       const settingsStore = useSettingsStore(pinia)
       const current = String(settingsStore.settings.modelPath || '')
       const migrated = resolveBundledModelUrl(current)
+      // 旧版存的是相对路径（如 shizuku/shizuku.model.json），要拼插件内置的 CDN 示例仓库前缀；
+      // 那个在线地址已经去掉了，这类路径一律归到内置形象。
+      const isLegacyRelative =
+        current !== '' && !/^(https?:\/\/|\/|local:\/\/)/i.test(current)
       const fallback =
-        current === '' || current === DEFAULTS.MODEL_PATH ? getBundledModelUrl() : ''
+        current === '' || current === DEFAULTS.MODEL_PATH || isLegacyRelative
+          ? getBundledModelUrl()
+          : ''
       const next = migrated || fallback
       // 旧默认值、空值，以及换端口/来源前的内置模型地址，都归到当前地址；
       // 自己挑过（非内置）的模型保持不动。
@@ -350,7 +366,7 @@ export function apply(ctx) {
   console.log('[dsh-tavern-desktop-pet] 已挂载', { gameId: gameId || '(未打开任何局)' })
   if (typeof window !== 'undefined') {
     window.__dshTavernPetDebug = {
-      version: '0.5.0',
+      version: '0.6.0',
       guide: () => guide.getState(),
       talking: () => Live2DManager.isTalking(),
       mouth: () => Live2DManager._mouthCurrentValue,
