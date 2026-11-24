@@ -84,6 +84,7 @@ import {
   speak as speakViaTavern,
   standardEmotion,
   stopSpeaking as stopTavernSpeech,
+  supportsWorkStatus,
   watchWorkStatus,
 } from '../../bridge/tavern';
 import { guideDockActive } from '../../guide/dock-state';
@@ -95,7 +96,15 @@ import { ChatMonitor } from '../chat/monitor';
 import { DEFAULTS, LOCAL_LIVE2D_MODEL_PATH_PREFIX, type EmotionTag } from '../core/constants';
 import { useSettingsStore } from '../core/settings';
 import { getBundledModelUrl } from '../core/bundled-model';
-import { faceForWorkStatus, labelForWorkStatus, pickBubbleForWorkStatus, shouldApplyWorkStatusFace } from '../core/work-status';
+import {
+  faceForWorkStatus,
+  formatRunProgress,
+  formatRunSummary,
+  labelForWorkStatus,
+  pickBubbleForWorkStatus,
+  shouldApplyWorkStatusFace,
+  stepLabelForWorkStatus,
+} from '../core/work-status';
 import { useUiStore } from '../core/ui';
 import { hasLive2DModel } from '../db/live2d-models';
 import { Live2DManager, type ModelLoadProgress } from '../live2d/manager';
@@ -139,6 +148,122 @@ let workStatusSerial = 0;
 // 状态不变时，每 5 秒换一句候选，别一直顶同一句。
 const STATUS_BUBBLE_ROTATE_MS = 5000;
 let statusBubbleTimer: number | null = null;
+
+// ---- 显示方式「仅生成时显示」----
+// 固定在输入框旁、大小固定、不能拖；思考 / 调用工具时出现，写完或出错停留一会儿再收起，
+// 「等你回答」时不出现。旧版 Tavern 没有工作状态接口，这个模式不生效（设置里灰掉）。
+const workStatusSupported = supportsWorkStatus();
+const fixedMode = computed(() => workStatusSupported && settings.value.petDisplayMode === 'generating');
+const RUN_LINGER_MS = 3000;
+const RUN_TRAIL_MAX = 5;
+const runActive = ref(false);
+const runStartedAt = ref(0);
+const runStep = ref(0);
+const runTrail = ref<string[]>([]);
+const runSummary = ref('');
+const runNow = ref(Date.now());
+let runLastStepKey = '';
+let runTickTimer: number | null = null;
+let runLingerTimer: number | null = null;
+
+function stopRunTick(): void {
+  if (runTickTimer === null) return;
+  window.clearInterval(runTickTimer);
+  runTickTimer = null;
+}
+
+function clearRunLinger(): void {
+  if (runLingerTimer === null) return;
+  window.clearTimeout(runLingerTimer);
+  runLingerTimer = null;
+}
+
+function resetRun(): void {
+  stopRunTick();
+  clearRunLinger();
+  runActive.value = false;
+  runStartedAt.value = 0;
+  runStep.value = 0;
+  runTrail.value = [];
+  runSummary.value = '';
+  runLastStepKey = '';
+}
+
+/** 跟着工作状态记这一轮：第几步、走过哪几步、用了多久；写完 / 出错留一句收尾。 */
+function trackRun(status: { state?: string; tool?: string; role?: string } | null): void {
+  const state = String(status?.state || '');
+  const step = stepLabelForWorkStatus(status);
+  if (step) {
+    if (!runActive.value) {
+      resetRun();
+      runActive.value = true;
+      runStartedAt.value = Date.now();
+      runNow.value = runStartedAt.value;
+      runTickTimer = window.setInterval(() => {
+        runNow.value = Date.now();
+      }, 1000);
+    }
+    const key = state + '|' + String(status?.tool || '') + '|' + String(status?.role || '');
+    if (key !== runLastStepKey) {
+      runLastStepKey = key;
+      runStep.value += 1;
+      runTrail.value = [...runTrail.value, step].slice(-RUN_TRAIL_MAX);
+    }
+    return;
+  }
+  if ((state === 'success' || state === 'error') && runActive.value) {
+    const elapsedSec = (Date.now() - runStartedAt.value) / 1000;
+    const steps = runStep.value;
+    const line = pickBubbleForWorkStatus(status, lastBubbleLine);
+    resetRun();
+    runSummary.value = formatRunSummary({ line, steps, elapsedSec });
+    runLingerTimer = window.setTimeout(() => {
+      runLingerTimer = null;
+      runSummary.value = '';
+      syncPetHidden();
+    }, RUN_LINGER_MS);
+    return;
+  }
+  if (state === 'success' || state === 'error') return;
+  // idle：收尾那句还在就让它播完；waiting / 没有状态：这一轮先收起。
+  if (state === 'idle' && runSummary.value) return;
+  resetRun();
+}
+
+/** 浮窗桌宠该不该藏：「等你回答」总是藏；固定模式下没在生成、也没话要说时藏。 */
+function shouldHidePet(): boolean {
+  if (String(workStatus.value?.state || '') === 'waiting') return true;
+  if (!fixedMode.value) return false;
+  if (guideActive.value) return false; // 卡片工作台里引导员要用桌宠说话
+  if (String(bubbleText.value || '').trim()) return false; // 「逗一下」/ 对话的回复
+  return !runActive.value && !runSummary.value;
+}
+
+function syncPetHidden(): void {
+  Live2DStage.setHidden(shouldHidePet());
+}
+
+function effectivePetScale(): number {
+  return fixedMode.value ? DEFAULTS.PET_SCALE : normalizePetScale(settings.value.petScale);
+}
+
+function applyStageScale(): void {
+  const stageSize = getStageSize(effectivePetScale());
+  Live2DStage.resizeFloating(stageSize.width, stageSize.height);
+  if (!Live2DStage.isPreviewMounted()) {
+    Live2DManager.updateScale(stageSize.width, stageSize.height, 1);
+  }
+}
+
+function monitorConfig() {
+  return {
+    // 固定模式只在生成时露面，自动吐槽会让它平白冒出来：关掉，双击 / 逗一下照旧。
+    autoTrigger: settings.value.autoTrigger && !fixedMode.value,
+    triggerInterval: settings.value.triggerInterval,
+    triggerProbability: settings.value.triggerProbability,
+    commentTriggerMode: settings.value.commentTriggerMode,
+  };
+}
 // 停靠区接管时，固定气泡让位，避免同一句话显示两遍。
 const guideBubble = computed(() => {
   const state = guideState.value;
@@ -166,6 +291,16 @@ const statusBubbleText = computed(() => {
   if (guideActive.value || guideBubble.value || String(bubbleText.value || '').trim()) return '';
   // 「等你回答」时浮窗桌宠藏起来了，头顶气泡也别单独飘着。
   if (String(workStatus.value?.state || '') === 'waiting') return '';
+  if (fixedMode.value) {
+    if (runSummary.value) return runSummary.value;
+    if (!runActive.value) return '';
+    return formatRunProgress({
+      line: statusBubbleWanted.value,
+      step: runStep.value,
+      elapsedSec: (runNow.value - runStartedAt.value) / 1000,
+      trail: runTrail.value,
+    });
+  }
   return statusBubbleWanted.value;
 });
 
@@ -248,7 +383,9 @@ function applyWorkStatus(next: any): void {
   workStatus.value = status;
   // 「等你回答」时浮窗桌宠先藏起来，别挡着玩家看题、打字；状态一变就回来。
   // 停靠在卡片工作台里时由停靠区自己管，不受影响。
-  Live2DStage.setHidden(String(status?.state || '') === 'waiting');
+  // 固定模式（仅生成时显示）另外只在生成时露面。
+  trackRun(status);
+  syncPetHidden();
   if (!status) {
     statusBubbleWanted.value = '';
     lastWorkBubbleKey = '';
@@ -318,6 +455,7 @@ function bindWorkStatus(): void {
 function stopWorkStatusWatch(): void {
   stopWorkStatus?.();
   stopWorkStatus = null;
+  resetRun();
   Live2DStage.setHidden(false);
   stopStatusBubbleRotation();
   workStatusSerial++;
@@ -659,7 +797,7 @@ function syncStageAfterViewportResize(reason: string): void {
   if (petClosed) return;
   if (Live2DStage.isPreviewMounted()) return;
 
-  const stageSize = getStageSize(settings.value.petScale);
+  const stageSize = getStageSize(effectivePetScale());
   const recoverOnce = (label: string) => {
     Live2DStage.resizeFloating(stageSize.width, stageSize.height);
     const top = getTopWindow();
@@ -921,10 +1059,12 @@ async function initPet() {
 
     Live2DManager.setAutoMotionLoopEnabled(s.autoMotionLoop);
 
-    const initialScale = normalizePetScale(s.petScale);
-    if (initialScale !== s.petScale) {
-      settings.value.petScale = initialScale;
+    const savedScale = normalizePetScale(s.petScale);
+    if (savedScale !== s.petScale) {
+      settings.value.petScale = savedScale;
     }
+    // 固定模式用默认大小，但不改玩家存的缩放；切回常驻时原样恢复。
+    const initialScale = effectivePetScale();
     const stageSize = getStageSize(initialScale);
 
     const created = Live2DStage.create({
@@ -933,9 +1073,12 @@ async function initPet() {
       position: { x: s.petPosition.x, y: s.petPosition.y },
       scale: initialScale,
       onPositionChange: (x: number, y: number) => {
+        // 固定模式的位置跟着输入框算，不写进设置。
+        if (Live2DStage.isFixedMode()) return;
         settings.value.petPosition = { x, y };
       },
       onScaleChange: (scale: number) => {
+        if (fixedMode.value) return;
         const safeScale = normalizePetScale(scale);
         if (safeScale !== settings.value.petScale) {
           settings.value.petScale = safeScale;
@@ -969,6 +1112,8 @@ async function initPet() {
       return;
     }
     log('Live2D 舞台创建完成');
+    Live2DStage.setFixedMode(fixedMode.value, settings.value.petPosition);
+    syncPetHidden();
 
     let loaded = await loadModelWithProgress(s.modelPath);
     if (taskId !== initTaskId || petClosed) return;
@@ -1003,12 +1148,7 @@ async function initPet() {
     }
 
     ChatMonitor.init(
-      {
-        autoTrigger: s.autoTrigger,
-        triggerInterval: s.triggerInterval,
-        triggerProbability: s.triggerProbability,
-        commentTriggerMode: s.commentTriggerMode,
-      },
+      monitorConfig(),
       () => {
         // 别的插件正占着这一局的「声音」：让路，别在它演出中间插嘴。
         const holder = foreignVoiceLease();
@@ -1059,7 +1199,7 @@ async function onModelChange(path: string) {
   const loaded = await loadModelWithProgress(path);
   if (petClosed) return;
   if (loaded) {
-    const stageSize = getStageSize(settings.value.petScale);
+    const stageSize = getStageSize(effectivePetScale());
     Live2DManager.mountToStage(stageSize.width, stageSize.height, 1);
   } else if (isLocalModel) {
     const message = '本地模型加载失败，请尝试重新上传 ZIP 或切换远程模型。';
@@ -1074,17 +1214,24 @@ function onBubbleHidden() {
   bubbleDone.value = true;
 }
 
-watch(
-  () => ({
-    autoTrigger: settings.value.autoTrigger,
-    triggerInterval: settings.value.triggerInterval,
-    triggerProbability: settings.value.triggerProbability,
-    commentTriggerMode: settings.value.commentTriggerMode,
-  }),
-  (config) => {
-    ChatMonitor.updateConfig(config);
-  },
-);
+watch(monitorConfig, (config) => {
+  ChatMonitor.updateConfig(config);
+});
+
+// 切换显示方式：固定 ↔ 常驻。不改存下的位置和缩放，切回常驻时原样恢复。
+watch(fixedMode, (fixed) => {
+  if (petClosed) return;
+  Live2DStage.setFixedMode(fixed, settings.value.petPosition);
+  applyStageScale();
+  syncPetHidden();
+  log(fixed ? '显示方式 → 仅生成时显示' : '显示方式 → 常驻');
+});
+
+// 固定模式下，引导员开口或「逗一下」有回复时也要露面，说完再收起。
+watch([guideActive, () => Boolean(String(bubbleText.value || '').trim())], () => {
+  if (petClosed) return;
+  syncPetHidden();
+});
 
 watch(
   () => settings.value.autoMotionLoop,
@@ -1116,11 +1263,9 @@ watch(
       settings.value.petScale = safeScale;
       return;
     }
-    const stageSize = getStageSize(safeScale);
-    Live2DStage.resizeFloating(stageSize.width, stageSize.height);
-    if (!Live2DStage.isPreviewMounted()) {
-      Live2DManager.updateScale(stageSize.width, stageSize.height, 1);
-    }
+    // 固定模式大小不变，存下的缩放等切回常驻再生效。
+    if (fixedMode.value) return;
+    applyStageScale();
   },
 );
 

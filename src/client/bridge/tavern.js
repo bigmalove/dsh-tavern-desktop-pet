@@ -202,6 +202,15 @@ export function watchReply(gameId, listener) {
   }
 }
 
+/** Tavern 有没有工作状态接口（插件接口第 7 版起）；「仅生成时显示」靠它。 */
+export function supportsWorkStatus() {
+  try {
+    return typeof state.tavernUi?.watchWorkStatus === 'function'
+  } catch {
+    return false
+  }
+}
+
 export function apiVersion() {
   try {
     return Number(state.tavernUi?.apiVersion) || 0

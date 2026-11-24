@@ -36,8 +36,9 @@ export const Live2DStage = {
   _interactionSyncTimer: null as number | null,
   _pixelReadBuffer: null as Uint8Array | null,
   _lastClampLogAt: 0,
-  // 没拖过时跟着输入框走；拖过就记住玩家的位置。
+  // 固定模式（仅生成时显示）：跟着输入框走，不能拖/缩放。
   _anchored: false,
+  _pendingRestore: null as { x: number; y: number } | null,
   _anchorTimer: null as number | null,
   _hidden: false,
 
@@ -137,14 +138,57 @@ export const Live2DStage = {
     this._anchorTimer = null;
   },
 
-  /** 回到输入框旁的默认位置（并恢复跟随）。 */
-  anchorToComposer(): void {
-    this._anchored = true;
-    this._anchorToComposer();
+  /**
+   * 固定模式（设置「仅生成时显示」）：贴着输入框、不能拖、不能缩放，也不写位置。
+   * 关掉时回到玩家存的位置（没存过就是右下角）。
+   */
+  setFixedMode(fixed: boolean, position?: { x: number; y: number }): void {
+    if (this._anchored === fixed) {
+      if (fixed) this._anchorToComposer();
+      return;
+    }
+    this._anchored = fixed;
+    if (fixed) {
+      this._pendingRestore = null;
+      this._anchorToComposer();
+      return;
+    }
+    if (!this.container || this.mountMode !== 'floating') {
+      // 正挂在预览/停靠区里：等 popMount 回到浮窗再恢复。
+      this._pendingRestore = position ?? { x: -1, y: -1 };
+      return;
+    }
+    this._applySavedPosition(position);
   },
 
-  isAnchored(): boolean {
+  isFixedMode(): boolean {
     return this._anchored;
+  },
+
+  _applySavedPosition(position?: { x: number; y: number }): void {
+    const c = this.container;
+    if (!c) return;
+    const valid =
+      !!position &&
+      Number.isFinite(position.x) &&
+      Number.isFinite(position.y) &&
+      !(position.x === -1 && position.y === -1);
+    if (!valid) {
+      c.style.left = '';
+      c.style.top = '';
+      c.style.right = '20px';
+      c.style.bottom = '20px';
+      return;
+    }
+    const size = this._getContainerRectSize({
+      width: parseFloat(c.style.width || '0') || 0,
+      height: parseFloat(c.style.height || '0') || 0,
+    });
+    const clamped = this._clampPosition(position!.x, position!.y, size.width, size.height, this._minVisiblePx);
+    c.style.left = `${clamped.x}px`;
+    c.style.top = `${clamped.y}px`;
+    c.style.right = 'auto';
+    c.style.bottom = 'auto';
   },
 
   /** 「等你回答」等场合临时藏起浮窗桌宠；不销毁模型，恢复时原样出现。停靠到工作台时不受影响。 */
@@ -554,6 +598,7 @@ export const Live2DStage = {
 
     dragTarget.addEventListener('pointermove', (e: PointerEvent) => {
       if (state.pointerId === null || e.pointerId !== state.pointerId) return;
+      if (this._anchored) return;
       if (e.pointerType === 'touch' && state.touchPointerIds.size > 1) {
         cleanup();
         return;
@@ -566,7 +611,6 @@ export const Live2DStage = {
       if (!state.dragging) {
         if (dist < 8) return;
         state.dragging = true;
-        this._anchored = false;
         $container.addClass(this._dragClass);
 
         container.style.left = `${state.startLeft}px`;
@@ -780,7 +824,6 @@ export const Live2DStage = {
     }
 
     top.document.body.appendChild(this.container);
-    this._anchored = !hasSavedPosition;
     if (this._hidden) this.container.style.visibility = 'hidden';
     this._startAnchorTimer();
 
@@ -863,8 +906,9 @@ export const Live2DStage = {
         $container.draggable({
           handle: '.desktop-pet-interaction-layer',
           start: (_e: any, ui: any) => {
+            // 固定模式（仅生成时显示）不许拖。
+            if (this._anchored) return false;
             $container.addClass(this._dragClass);
-            this._anchored = false;
 
             const rect = this.container?.getBoundingClientRect?.();
             if (!rect) return;
@@ -968,6 +1012,7 @@ export const Live2DStage = {
 
     const onTouchPointerDown = (e: PointerEvent) => {
       if (e.pointerType !== 'touch') return;
+      if (this._anchored) return;
       activeTouchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (activeTouchPointers.size < 2) return;
 
@@ -1025,6 +1070,8 @@ export const Live2DStage = {
     interactionTarget.addEventListener('pointercancel', onTouchPointerEnd);
 
     interactionTarget.addEventListener('wheel', (e: WheelEvent) => {
+      // 固定模式大小不变：滚轮交给页面滚动。
+      if (this._anchored) return;
       e.preventDefault();
       const delta = e.deltaY > 0 ? -0.05 : 0.05;
       emitScaleChange(currentScale + delta);
@@ -1174,6 +1221,14 @@ export const Live2DStage = {
     this._onPositionChange = entry.onPositionChange;
     this.mountMode = this.mountStack.length > 0 ? 'preview' : 'floating';
     this.container.style.visibility = this._hidden && this.mountMode === 'floating' ? 'hidden' : 'visible';
+    if (this.mountMode === 'floating') {
+      if (this._anchored) {
+        this._anchorToComposer();
+      } else if (this._pendingRestore) {
+        this._applySavedPosition(this._pendingRestore);
+      }
+      this._pendingRestore = null;
+    }
     this._syncInteractionLayerBounds();
 
     try {

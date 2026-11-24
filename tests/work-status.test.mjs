@@ -64,3 +64,50 @@ test('工作状态 → 气泡短句：每类都有多句，工具/结算优先�
     pickBubbleForWorkStatus({ state: 'working', tool: 'tavern_copy_card' }, '', () => 0),
   ));
 });
+
+// ---- 「仅生成时显示」的进度气泡 ----
+import {
+  formatElapsed,
+  formatRunProgress,
+  formatRunSummary,
+  stepLabelForWorkStatus,
+} from '../src/client/pet/core/work-status.js';
+
+test('时间线步骤名：思考 / 已登记工具 / 结算 / 其他工具去前缀；不在跑的状态返回空串', () => {
+  assert.equal(stepLabelForWorkStatus({ state: 'thinking' }), '思考');
+  assert.equal(stepLabelForWorkStatus({ state: 'working', tool: 'tavern_update_card' }), '改卡');
+  assert.equal(stepLabelForWorkStatus({ state: 'working', tool: 'tavern_validate_card' }), '校验');
+  assert.equal(stepLabelForWorkStatus({ state: 'working', role: 'settlement' }), '结算');
+  assert.equal(stepLabelForWorkStatus({ state: 'working' }), '干活');
+  assert.equal(stepLabelForWorkStatus({ state: 'working', tool: 'tavern_roll_dice' }), 'roll_dice');
+  assert.equal(stepLabelForWorkStatus({ state: 'working', tool: 'a_very_long_tool_name_here' }), 'a_very_long_…');
+  for (const state of ['idle', 'waiting', 'success', 'error', 'nope', '']) {
+    assert.equal(stepLabelForWorkStatus({ state }), '', state);
+  }
+  assert.equal(stepLabelForWorkStatus(null), '');
+});
+
+test('耗时格式：不足一分钟用秒，超过补零', () => {
+  assert.equal(formatElapsed(0), '0s');
+  assert.equal(formatElapsed(12.7), '12s');
+  assert.equal(formatElapsed(65), '1m05s');
+  assert.equal(formatElapsed(-3), '0s');
+  assert.equal(formatElapsed('abc'), '0s');
+});
+
+test('进度气泡：当前一句 + 第 N 步 · 已用；两步以上才带时间线', () => {
+  assert.equal(
+    formatRunProgress({ line: '让我想想…', step: 1, elapsedSec: 3, trail: ['思考'] }),
+    '让我想想…\n第 1 步 · 已用 3s',
+  );
+  assert.equal(
+    formatRunProgress({ line: '写进卡里…', step: 3, elapsedSec: 12, trail: ['思考', '改卡', '校验'] }),
+    '写进卡里…\n第 3 步 · 已用 12s\n思考 → 改卡 → 校验',
+  );
+  assert.equal(formatRunProgress({}), '生成中…\n已用 0s');
+});
+
+test('收尾气泡：一句 + 共 N 步 · 用时', () => {
+  assert.equal(formatRunSummary({ line: '写完了！', steps: 4, elapsedSec: 75 }), '写完了！\n共 4 步 · 用时 1m15s');
+  assert.equal(formatRunSummary({}), '这轮结束！\n用时 0s');
+});

@@ -147,3 +147,61 @@ export function shouldApplyWorkStatusFace(input) {
   if (input.bubbleVisible === true) return false;
   return faceForWorkStatus(state) !== '';
 }
+
+// ---- 「仅生成时显示」的进度气泡 ----
+
+/** 时间线里每一步的短名：思考 → 改卡 → 校验 …；没登记的工具用去掉前缀的工具名。 */
+const STEP_TOOL_LABELS = Object.freeze({
+  ask_user_question: '提问',
+  tavern_update_card: '改卡',
+  tavern_validate_card: '校验',
+  tavern_copy_card: '备份',
+});
+
+/** 一个工作状态 → 时间线上的一步；不在跑（idle / waiting / success / error / 未知）返回空串。 */
+export function stepLabelForWorkStatus(status) {
+  const state = String((status && status.state) || '').trim();
+  if (state === 'thinking') return '思考';
+  if (state !== 'working') return '';
+  if (status.role === 'settlement') return '结算';
+  const tool = typeof status.tool === 'string' ? status.tool.trim() : '';
+  if (!tool) return '干活';
+  if (Object.prototype.hasOwnProperty.call(STEP_TOOL_LABELS, tool)) return STEP_TOOL_LABELS[tool];
+  const short = tool.replace(/^(tavern|dsh)_/i, '');
+  return short.length > 12 ? short.slice(0, 12) + '…' : short;
+}
+
+/** 秒数 → 「12s」/「1m05s」。 */
+export function formatElapsed(seconds) {
+  const total = Math.max(0, Math.floor(Number(seconds) || 0));
+  if (total < 60) return total + 's';
+  const minutes = Math.floor(total / 60);
+  const rest = String(total % 60).padStart(2, '0');
+  return minutes + 'm' + rest + 's';
+}
+
+/**
+ * 生成中的气泡：第一行是当前这一步的短句，第二行「第 N 步 · 已用 12s」，
+ * 走过两步以上再加一行最近几步的时间线。
+ */
+export function formatRunProgress(input) {
+  const line = String((input && input.line) || '').trim() || '生成中…';
+  const step = Math.max(0, Math.floor(Number(input && input.step) || 0));
+  const meta = [step > 0 ? '第 ' + step + ' 步' : '', '已用 ' + formatElapsed(input && input.elapsedSec)]
+    .filter(Boolean)
+    .join(' · ');
+  const trail = Array.isArray(input && input.trail) ? input.trail.filter(Boolean) : [];
+  const lines = [line, meta];
+  if (trail.length > 1) lines.push(trail.join(' → '));
+  return lines.join('\n');
+}
+
+/** 写完 / 出错后停留的收尾一句：「写完了！」+「共 N 步 · 用时 12s」。 */
+export function formatRunSummary(input) {
+  const line = String((input && input.line) || '').trim() || '这轮结束！';
+  const steps = Math.max(0, Math.floor(Number(input && input.steps) || 0));
+  const meta = [steps > 0 ? '共 ' + steps + ' 步' : '', '用时 ' + formatElapsed(input && input.elapsedSec)]
+    .filter(Boolean)
+    .join(' · ');
+  return line + '\n' + meta;
+}

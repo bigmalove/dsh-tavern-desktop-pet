@@ -92,8 +92,9 @@ const SettingsSchema = z
         y: z.number().default(DEFAULTS.PET_POSITION.y),
       })
       .default({}),
-    // 默认位置改成贴着输入框后，旧版存下的右下角坐标要清一次（1 = 已迁移）。
-    petPositionVersion: z.number().default(0),
+    // 显示方式：always = 常驻（可拖动 / 缩放）；generating = 仅生成时显示，
+    // 固定在输入框旁、大小固定，气泡里显示这一轮的步骤和耗时。
+    petDisplayMode: z.enum(['always', 'generating']).default('always'),
     petScale: z.number().min(0.1).max(3).default(DEFAULTS.PET_SCALE),
     autoMotionLoop: z.boolean().default(DEFAULTS.AUTO_MOTION_LOOP),
     doubleTapRandomMotionEnabled: z.boolean().default(DEFAULTS.DOUBLE_TAP_RANDOM_MOTION_ENABLED),

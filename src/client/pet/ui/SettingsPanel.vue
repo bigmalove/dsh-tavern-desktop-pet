@@ -180,8 +180,28 @@
               </div>
 
               <div class="form-group">
+                <label>显示方式</label>
+                <select v-model="settings.petDisplayMode" :disabled="!workStatusSupported">
+                  <option value="always">常驻（可拖动、缩放）</option>
+                  <option value="generating">仅生成时显示（固定在输入框旁）</option>
+                </select>
+                <div v-if="workStatusSupported" class="hint">
+                  「仅生成时显示」：AI 思考或调用工具时出现在输入框左上方，气泡里显示当前这一步、第几步、已用时间和最近几步；写完或出错停留约 3 秒再收起，「等你回答」时不出现。这个模式大小和位置固定、不能拖，也不会自动吐槽；切回常驻时恢复原来的位置和大小。
+                </div>
+                <div v-else class="hint">当前 Tavern 版本没有提供生成状态（需要插件接口第 7 版），「仅生成时显示」不可用，请先升级 Tavern。</div>
+              </div>
+
+              <div class="form-group">
                 <label>宠物缩放 ({{ petScaleLabel }})</label>
-                <input type="range" v-model.number="settings.petScale" min="0.1" max="3" step="0.05" />
+                <input
+                  type="range"
+                  v-model.number="settings.petScale"
+                  min="0.1"
+                  max="3"
+                  step="0.05"
+                  :disabled="fixedDisplayMode"
+                />
+                <div v-if="fixedDisplayMode" class="hint">「仅生成时显示」下大小固定，这里的缩放切回常驻后生效。</div>
               </div>
 
               <div class="form-group">
@@ -657,7 +677,7 @@ import { resolveLive2DExpression, resolveLive2DMotion } from '../live2d/expressi
 import { Live2DManager } from '../live2d/manager';
 import { Live2DStage } from '../live2d/stage';
 import { Live2DUploader } from '../live2d/uploader';
-import { callHost, speak, stopSpeaking } from '../../bridge/tavern';
+import { callHost, speak, stopSpeaking, supportsWorkStatus } from '../../bridge/tavern';
 import ModelBrowser from './ModelBrowser.vue';
 
 const props = defineProps<{
@@ -817,6 +837,9 @@ function ensureNumericSettingsIntegrity(): void {
   );
 }
 
+// 旧版 Tavern 没有工作状态接口：「仅生成时显示」灰掉。
+const workStatusSupported = supportsWorkStatus();
+const fixedDisplayMode = computed(() => workStatusSupported && settings.value.petDisplayMode === 'generating');
 const petScaleLabel = computed(() => toBoundedNumber(settings.value.petScale, DEFAULTS.PET_SCALE, 0.1, 3).toFixed(2));
 
 ensureNumericSettingsIntegrity();
